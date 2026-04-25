@@ -7,6 +7,7 @@ const port = Number(process.env.PORT) || 3003;
 
 const cartBaseUrl = process.env.CART_SERVICE_URL || "http://127.0.0.1:3002";
 const catalogBaseUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
+const invoiceWorkerUrl = process.env.INVOICE_WORKER_URL || "http://127.0.0.1:3004";
 
 app.use(express.json());
 
@@ -164,6 +165,18 @@ app.post("/checkout", async (req, res) => {
 
     // For now we log the event. Later this becomes SQS publish.
     console.log("Invoice event:", JSON.stringify(invoiceEvent));
+    try {
+      await fetchJson(`${invoiceWorkerUrl}/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(invoiceEvent)
+      });
+    } catch (workerError) {
+      // Checkout remains successful even if invoice processing is temporarily unavailable.
+      console.error("Invoice worker call failed:", workerError.message);
+    }
 
     return res.status(201).json({
       orderId: order.id,
@@ -194,4 +207,5 @@ app.listen(port, () => {
   console.log(`Checkout service is running on port ${port}`);
   console.log(`Using CART_SERVICE_URL=${cartBaseUrl}`);
   console.log(`Using CATALOG_SERVICE_URL=${catalogBaseUrl}`);
+  console.log(`Using INVOICE_WORKER_URL=${invoiceWorkerUrl}`);
 });
