@@ -1,0 +1,9 @@
+{
+  "name": "shopcloud-phase2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Root scripts for ShopCloud phase2",
+  "scripts": {
+    "smoke": "node scripts/smoke-test.js"
+  }
+}
