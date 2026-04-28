@@ -1,4 +1,10 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: shopcloud-redis
+    ports:
+      - "6379:6379"
+
   catalog:
     build:
       context: ./services/catalog
@@ -14,8 +20,11 @@ services:
     container_name: shopcloud-cart
     environment:
       - PORT=3002
+      - REDIS_URL=redis://redis:6379
     ports:
       - "3002:3002"
+    depends_on:
+      - redis
 
   invoice-worker:
     build:
