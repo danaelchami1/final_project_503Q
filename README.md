@@ -3,6 +3,7 @@
 This repository contains a minimal microservices implementation of ShopCloud for phase 2:
 
 - `redis` (port `6379`) for cart persistence
+- `postgres` (port `5432`) for checkout order persistence
 - `catalog` (port `3001`)
 - `cart` (port `3002`)
 - `checkout` (port `3003`)
