@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shopcloud-postgres
+    environment:
+      - POSTGRES_USER=shopcloud
+      - POSTGRES_PASSWORD=shopcloud
+      - POSTGRES_DB=shopcloud_orders
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: shopcloud-redis
+    ports:
+      - "6379:6379"
+
+  catalog:
+    build:
+      context: ./services/catalog
+    container_name: shopcloud-catalog
+    environment:
+      - PORT=3001
+    ports:
+      - "3001:3001"
+
+  cart:
+    build:
+      context: ./services/cart
+    container_name: shopcloud-cart
+    environment:
+      - PORT=3002
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "3002:3002"
+    depends_on:
+      - redis
+
+  invoice-worker:
+    build:
+      context: ./services/invoice-worker
+    container_name: shopcloud-invoice-worker
+    environment:
+      - PORT=3004
+    ports:
+      - "3004:3004"
+    volumes:
+      - ./services/invoice-worker/invoices:/app/invoices
+
+  auth:
+    build:
+      context: ./services/auth
+    container_name: shopcloud-auth
+    environment:
+      - PORT=3005
+    ports:
+      - "3005:3005"
+
+  admin:
+    build:
+      context: ./services/admin
+    container_name: shopcloud-admin
+    environment:
+      - PORT=3006
+      - AUTH_SERVICE_URL=http://auth:3005
+    ports:
+      - "3006:3006"
+    depends_on:
+      - auth
+
+  checkout:
+    build:
+      context: ./services/checkout
+    container_name: shopcloud-checkout
+    environment:
+      - PORT=3003
+      - CART_SERVICE_URL=http://cart:3002
+      - CATALOG_SERVICE_URL=http://catalog:3001
+      - INVOICE_WORKER_URL=http://invoice-worker:3004
+      - DATABASE_URL=postgres://shopcloud:shopcloud@postgres:5432/shopcloud_orders
+    ports:
+      - "3003:3003"
+    depends_on:
+      - cart
+      - catalog
+      - invoice-worker
+      - postgres
+
+volumes:
+  postgres-data:

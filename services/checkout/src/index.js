@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const https = require("https");
+const { Pool } = require("pg");
 
 const app = express();
 const port = Number(process.env.PORT) || 3003;
@@ -8,10 +9,86 @@ const port = Number(process.env.PORT) || 3003;
 const cartBaseUrl = process.env.CART_SERVICE_URL || "http://127.0.0.1:3002";
 const catalogBaseUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
 const invoiceWorkerUrl = process.env.INVOICE_WORKER_URL || "http://127.0.0.1:3004";
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  "postgres://shopcloud:shopcloud@127.0.0.1:5432/shopcloud_orders";
 
 app.use(express.json());
 
 const orders = [];
+let dbPool = null;
+let dbReady = false;
+
+async function connectDatabase() {
+  try {
+    dbPool = new Pool({
+      connectionString: databaseUrl
+    });
+    await dbPool.query("SELECT 1");
+    await dbPool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        email TEXT NOT NULL,
+        items JSONB NOT NULL,
+        total NUMERIC(12, 2) NOT NULL,
+        status TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    dbReady = true;
+    console.log(`Connected to Postgres at ${databaseUrl}`);
+  } catch (error) {
+    dbReady = false;
+    dbPool = null;
+    console.error("Postgres unavailable, using in-memory orders:", error.message);
+  }
+}
+
+async function saveOrder(order) {
+  if (!dbReady || !dbPool) {
+    orders.push(order);
+    return;
+  }
+
+  await dbPool.query(
+    `
+      INSERT INTO orders (id, user_id, email, items, total, status, created_at)
+      VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7)
+    `,
+    [
+      order.id,
+      order.userId,
+      order.email,
+      JSON.stringify(order.items),
+      order.total,
+      order.status,
+      order.createdAt
+    ]
+  );
+}
+
+async function getAllOrders() {
+  if (!dbReady || !dbPool) {
+    return orders;
+  }
+
+  const result = await dbPool.query(`
+    SELECT id, user_id, email, items, total, status, created_at
+    FROM orders
+    ORDER BY created_at DESC
+  `);
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    email: row.email,
+    items: row.items,
+    total: Number(row.total),
+    status: row.status,
+    createdAt: row.created_at
+  }));
+}
 
 function createOrderId() {
   return `ord-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -85,8 +162,16 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.get("/orders", (_req, res) => {
-  res.status(200).json(orders);
+app.get("/orders", async (_req, res) => {
+  try {
+    const allOrders = await getAllOrders();
+    res.status(200).json(allOrders);
+  } catch (error) {
+    console.error("Failed to read orders:", error.message);
+    res.status(500).json({
+      error: "Failed to fetch orders"
+    });
+  }
 });
 
 app.post("/checkout", async (req, res) => {
@@ -142,7 +227,7 @@ app.post("/checkout", async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    orders.push(order);
+    await saveOrder(order);
 
     await fetchJson(`${cartBaseUrl}/cart/${userId}`, {
       method: "DELETE"
@@ -204,8 +289,11 @@ app.post("/checkout", async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Checkout service is running on port ${port}`);
-  console.log(`Using CART_SERVICE_URL=${cartBaseUrl}`);
-  console.log(`Using CATALOG_SERVICE_URL=${catalogBaseUrl}`);
-  console.log(`Using INVOICE_WORKER_URL=${invoiceWorkerUrl}`);
+  connectDatabase().finally(() => {
+    console.log(`Checkout service is running on port ${port}`);
+    console.log(`Using CART_SERVICE_URL=${cartBaseUrl}`);
+    console.log(`Using CATALOG_SERVICE_URL=${catalogBaseUrl}`);
+    console.log(`Using INVOICE_WORKER_URL=${invoiceWorkerUrl}`);
+    console.log(`Using DATABASE_URL=${databaseUrl}`);
+  });
 });

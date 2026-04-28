@@ -2,6 +2,8 @@
 
 Minimal ShopCloud cart microservice.
 
+Uses Redis when available (`REDIS_URL`), with in-memory fallback for local resilience.
+
 ## Endpoints
 
 - `GET /health`
@@ -29,3 +31,4 @@ npm start
 ```
 
 Default port: `3002`
+Default Redis URL: `redis://127.0.0.1:6379`
