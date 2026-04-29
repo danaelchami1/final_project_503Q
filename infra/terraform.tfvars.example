@@ -8,3 +8,7 @@ redis_node_type   = "cache.t3.micro"
 invoice_queue_name = "shopcloud-dev-invoice-queue"
 invoice_bucket_name = "shopcloud-dev-invoices-680666325893"
 ses_from_email = "noreply@shopcloud-dev.example.com"
+enable_rds_multi_az = true
+enable_rds_cross_region_replica = false
+dr_region = "us-west-2"
+enable_redis_multi_az = false

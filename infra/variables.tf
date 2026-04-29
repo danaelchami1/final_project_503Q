@@ -131,6 +131,48 @@ variable "ses_from_email" {
   default     = "noreply@shopcloud-dev.example.com"
 }
 
+variable "enable_rds_multi_az" {
+  description = "Enable Multi-AZ deployment for primary RDS instance"
+  type        = bool
+  default     = true
+}
+
+variable "enable_rds_cross_region_replica" {
+  description = "Enable cross-region RDS read replica for DR"
+  type        = bool
+  default     = false
+}
+
+variable "dr_region" {
+  description = "Disaster recovery region for cross-region read replica"
+  type        = string
+  default     = "us-west-2"
+}
+
+variable "db_backup_retention_period" {
+  description = "Number of days to retain automated RDS backups"
+  type        = number
+  default     = 7
+}
+
+variable "db_backup_window" {
+  description = "Preferred backup window for RDS"
+  type        = string
+  default     = "03:00-04:00"
+}
+
+variable "db_maintenance_window" {
+  description = "Preferred maintenance window for RDS"
+  type        = string
+  default     = "sun:04:00-sun:05:00"
+}
+
+variable "enable_redis_multi_az" {
+  description = "Enable Multi-AZ Redis replication group for cart"
+  type        = bool
+  default     = false
+}
+
 variable "enable_public_edge" {
   description = "Enable public edge chain Route53 -> CloudFront -> WAF for customer path"
   type        = bool

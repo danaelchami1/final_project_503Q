@@ -44,23 +44,41 @@ resource "aws_db_subnet_group" "shopcloud" {
 }
 
 resource "aws_db_instance" "orders" {
-  identifier             = "shopcloud-${var.environment}-orders"
-  engine                 = "postgres"
-  engine_version         = var.db_engine_version
-  instance_class         = var.db_instance_class
-  allocated_storage      = var.db_allocated_storage
-  db_name                = var.db_name
-  username               = var.db_username
-  password               = var.db_password
-  skip_final_snapshot    = true
-  publicly_accessible    = false
-  multi_az               = false
-  db_subnet_group_name   = aws_db_subnet_group.shopcloud.name
-  vpc_security_group_ids = [aws_security_group.data_plane.id]
+  identifier              = "shopcloud-${var.environment}-orders"
+  engine                  = "postgres"
+  engine_version          = var.db_engine_version
+  instance_class          = var.db_instance_class
+  allocated_storage       = var.db_allocated_storage
+  db_name                 = var.db_name
+  username                = var.db_username
+  password                = var.db_password
+  skip_final_snapshot     = true
+  publicly_accessible     = false
+  multi_az                = var.enable_rds_multi_az
+  backup_retention_period = var.db_backup_retention_period
+  backup_window           = var.db_backup_window
+  maintenance_window      = var.db_maintenance_window
+  storage_encrypted       = true
+  deletion_protection     = var.environment == "prod"
+  db_subnet_group_name    = aws_db_subnet_group.shopcloud.name
+  vpc_security_group_ids  = [aws_security_group.data_plane.id]
 
   tags = merge(local.common_tags, {
     Name = "shopcloud-${var.environment}-orders-db"
   })
+}
+
+resource "aws_db_instance" "orders_replica_dr" {
+  count    = var.enable_rds_cross_region_replica ? 1 : 0
+  provider = aws.dr
+
+  identifier                 = "shopcloud-${var.environment}-orders-dr-replica"
+  replicate_source_db        = aws_db_instance.orders.arn
+  instance_class             = var.db_instance_class
+  publicly_accessible        = false
+  auto_minor_version_upgrade = true
+  storage_encrypted          = true
+  skip_final_snapshot        = true
 }
 
 resource "aws_elasticache_subnet_group" "shopcloud" {
@@ -72,6 +90,7 @@ resource "aws_elasticache_subnet_group" "shopcloud" {
 }
 
 resource "aws_elasticache_cluster" "cart" {
+  count                = var.enable_redis_multi_az ? 0 : 1
   cluster_id           = "shopcloud-${var.environment}-cart"
   engine               = "redis"
   engine_version       = var.redis_engine_version
@@ -84,5 +103,28 @@ resource "aws_elasticache_cluster" "cart" {
 
   tags = merge(local.common_tags, {
     Name = "shopcloud-${var.environment}-cart-redis"
+  })
+}
+
+resource "aws_elasticache_replication_group" "cart_ha" {
+  count = var.enable_redis_multi_az ? 1 : 0
+
+  replication_group_id       = "shopcloud-${var.environment}-cart-rg"
+  description                = "ShopCloud cart Redis Multi-AZ replication group"
+  engine                     = "redis"
+  engine_version             = var.redis_engine_version
+  node_type                  = var.redis_node_type
+  port                       = 6379
+  parameter_group_name       = "default.redis7"
+  subnet_group_name          = aws_elasticache_subnet_group.shopcloud.name
+  security_group_ids         = [aws_security_group.data_plane.id]
+  num_cache_clusters         = 2
+  automatic_failover_enabled = true
+  multi_az_enabled           = true
+  at_rest_encryption_enabled = true
+  transit_encryption_enabled = true
+
+  tags = merge(local.common_tags, {
+    Name = "shopcloud-${var.environment}-cart-redis-ha"
   })
 }
