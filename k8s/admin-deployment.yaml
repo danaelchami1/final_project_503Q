@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  labels:
+    app: admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+    spec:
+      containers:
+        - name: admin
+          image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-admin:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3006
+          env:
+            - name: PORT
+              value: "3006"
+            - name: AUTH_SERVICE_URL
+              value: "http://auth:3005"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3006
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3006
+            initialDelaySeconds: 15
+            periodSeconds: 20
