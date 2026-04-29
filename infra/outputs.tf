@@ -28,3 +28,13 @@ output "nat_gateway_id" {
   description = "NAT Gateway ID"
   value       = aws_nat_gateway.nat.id
 }
+
+output "cluster_name" {
+  description = "EKS cluster name"
+  value       = aws_eks_cluster.shopcloud.name
+}
+
+output "cluster_endpoint" {
+  description = "EKS cluster API endpoint"
+  value       = aws_eks_cluster.shopcloud.endpoint
+}

@@ -8,6 +8,6 @@ Thumbs.db
 .terraform/
 *.tfstate
 *.tfstate.backup
-node_modules/
-.env
 .kube/
+terraform.tfvars
+services/invoice-worker/invoices/
