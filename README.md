@@ -85,3 +85,22 @@ Related env vars:
 - `INVOICE_QUEUE_NAME`
 - `INVOICE_BUCKET_NAME`
 - `SES_FROM_EMAIL`
+## CI/CD and Async Infra (Person B track)
+
+- Terraform now includes async infrastructure in `infra/async.tf`:
+  - `SQS` invoice queue + DLQ
+  - `S3` invoice bucket
+  - `SES` sender identity
+  - IAM role/policy for invoice worker or Lambda execution
+- GitHub Actions deploy workflows are configured to:
+  - build and push all service images to ECR
+  - update Kubernetes deployment images by tag
+  - wait for rollout status checks
+
+Required GitHub environment secrets (`dev` and `prod`):
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION`
+- `ECR_REGISTRY`
+- `EKS_CLUSTER_NAME`
