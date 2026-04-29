@@ -1,0 +1,7 @@
+aws_region        = "us-east-1"
+environment       = "dev"
+db_name           = "shopcloud_orders"
+db_username       = "shopcloud"
+db_password       = "change-me-strong-password"
+db_instance_class = "db.t3.micro"
+redis_node_type   = "cache.t3.micro"

@@ -63,3 +63,52 @@ variable "node_max_size" {
   type        = number
   default     = 3
 }
+
+variable "db_name" {
+  description = "Postgres database name for checkout orders"
+  type        = string
+  default     = "shopcloud_orders"
+}
+
+variable "db_username" {
+  description = "Postgres database username"
+  type        = string
+  default     = "shopcloud"
+}
+
+variable "db_password" {
+  description = "Postgres database password"
+  type        = string
+  sensitive   = true
+  default     = "shopcloud123"
+}
+
+variable "db_instance_class" {
+  description = "RDS instance class for Postgres"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Allocated storage in GB for Postgres"
+  type        = number
+  default     = 20
+}
+
+variable "db_engine_version" {
+  description = "Postgres engine version"
+  type        = string
+  default     = "16.3"
+}
+
+variable "redis_node_type" {
+  description = "ElastiCache Redis node type"
+  type        = string
+  default     = "cache.t3.micro"
+}
+
+variable "redis_engine_version" {
+  description = "ElastiCache Redis engine version"
+  type        = string
+  default     = "7.1"
+}

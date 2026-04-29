@@ -38,3 +38,29 @@ output "cluster_endpoint" {
   description = "EKS cluster API endpoint"
   value       = aws_eks_cluster.shopcloud.endpoint
 }
+
+output "orders_db_endpoint" {
+  description = "RDS Postgres endpoint for checkout"
+  value       = aws_db_instance.orders.address
+}
+
+output "orders_db_port" {
+  description = "RDS Postgres port"
+  value       = aws_db_instance.orders.port
+}
+
+output "orders_database_url" {
+  description = "Connection URL for checkout service"
+  value       = "postgres://${var.db_username}:${var.db_password}@${aws_db_instance.orders.address}:${aws_db_instance.orders.port}/${var.db_name}"
+  sensitive   = true
+}
+
+output "cart_redis_endpoint" {
+  description = "ElastiCache Redis endpoint for cart"
+  value       = aws_elasticache_cluster.cart.cache_nodes[0].address
+}
+
+output "cart_redis_url" {
+  description = "Redis URL for cart service"
+  value       = "redis://${aws_elasticache_cluster.cart.cache_nodes[0].address}:${aws_elasticache_cluster.cart.port}"
+}
