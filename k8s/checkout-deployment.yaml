@@ -31,7 +31,7 @@ spec:
             - name: AWS_REGION
               value: "us-east-1"
             - name: INVOICE_MODE
-              value: "http"
+              value: "sqs"
             - name: CART_SERVICE_URL
               value: "http://cart:3002"
             - name: CATALOG_SERVICE_URL
