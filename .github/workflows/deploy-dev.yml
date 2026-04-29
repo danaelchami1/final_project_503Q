@@ -9,18 +9,84 @@ jobs:
   deploy-dev:
     runs-on: ubuntu-latest
     environment: dev
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build and tag service images
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push service images
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           for s in catalog cart checkout auth admin invoice-worker; do
-            docker build -t shopcloud-$s:${GITHUB_SHA} ./services/$s
+            docker build -t ${ECR_REGISTRY}/shopcloud-$s:${IMAGE_TAG} ./services/$s
+            docker push ${ECR_REGISTRY}/shopcloud-$s:${IMAGE_TAG}
           done
 
-      - name: Deploy to development environment
+      - name: Configure kubeconfig for EKS
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
         run: |
-          echo "TODO: deploy images to dev target (EKS/ECS/Kubernetes manifests)"
-          echo "Image tag: ${GITHUB_SHA}"
+          aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
+
+      - name: Stabilize deployment strategies
+        run: |
+          # Keep single replicas on constrained nodes to avoid rollout deadlocks.
+          kubectl scale deployment/catalog --replicas=1
+          kubectl scale deployment/cart --replicas=1
+          kubectl scale deployment/checkout --replicas=1
+          kubectl scale deployment/auth --replicas=1
+          kubectl scale deployment/admin --replicas=1
+          kubectl scale deployment/invoice-worker --replicas=1
+
+          # Force no-surge rollout behavior to prevent pending surge pods.
+          kubectl patch deployment/catalog --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/cart --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/checkout --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/auth --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/admin --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/invoice-worker --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+
+      - name: Update deployment images
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          kubectl set image deployment/catalog catalog=${ECR_REGISTRY}/shopcloud-catalog:${IMAGE_TAG}
+          kubectl set image deployment/cart cart=${ECR_REGISTRY}/shopcloud-cart:${IMAGE_TAG}
+          kubectl set image deployment/checkout checkout=${ECR_REGISTRY}/shopcloud-checkout:${IMAGE_TAG}
+          kubectl set image deployment/auth auth=${ECR_REGISTRY}/shopcloud-auth:${IMAGE_TAG}
+          kubectl set image deployment/admin admin=${ECR_REGISTRY}/shopcloud-admin:${IMAGE_TAG}
+          kubectl set image deployment/invoice-worker invoice-worker=${ECR_REGISTRY}/shopcloud-invoice-worker:${IMAGE_TAG}
+
+      - name: Wait for rollouts
+        run: |
+          kubectl rollout status deployment/catalog --timeout=300s
+          kubectl rollout status deployment/cart --timeout=300s
+          kubectl rollout status deployment/checkout --timeout=300s
+          kubectl rollout status deployment/auth --timeout=300s
+          kubectl rollout status deployment/admin --timeout=300s
+          kubectl rollout status deployment/invoice-worker --timeout=300s
+
+      - name: Health check
+        run: |
+          kubectl get deployments

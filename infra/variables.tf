@@ -112,3 +112,21 @@ variable "redis_engine_version" {
   type        = string
   default     = "7.1"
 }
+
+variable "invoice_queue_name" {
+  description = "Primary SQS queue name for invoice jobs"
+  type        = string
+  default     = "shopcloud-dev-invoice-queue"
+}
+
+variable "invoice_bucket_name" {
+  description = "S3 bucket name for generated invoice artifacts"
+  type        = string
+  default     = "shopcloud-dev-invoices-680666325893"
+}
+
+variable "ses_from_email" {
+  description = "Verified SES sender email address for invoice notifications"
+  type        = string
+  default     = "noreply@shopcloud-dev.example.com"
+}
