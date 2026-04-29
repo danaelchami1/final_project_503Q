@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const https = require("https");
+const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
 const { Pool } = require("pg");
 
 const app = express();
@@ -9,8 +10,8 @@ const port = Number(process.env.PORT) || 3003;
 const cartBaseUrl = process.env.CART_SERVICE_URL || "http://127.0.0.1:3002";
 const catalogBaseUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
 const invoiceWorkerUrl = process.env.INVOICE_WORKER_URL || "http://127.0.0.1:3004";
-const invoiceMode = process.env.INVOICE_MODE || "http";
-const invoiceQueueName = process.env.INVOICE_QUEUE_NAME || "";
+const invoiceQueueUrl = process.env.INVOICE_QUEUE_URL || "";
+const invoiceMode = process.env.INVOICE_MODE || (invoiceQueueUrl ? "sqs" : "http");
 const awsRegion = process.env.AWS_REGION || "us-east-1";
 const databaseUrl =
   process.env.DATABASE_URL ||
@@ -21,6 +22,7 @@ app.use(express.json());
 const orders = [];
 let dbPool = null;
 let dbReady = false;
+let sqsClient = null;
 
 async function connectDatabase() {
   try {
@@ -115,13 +117,17 @@ function buildInvoiceEvent(order) {
 }
 
 async function triggerInvoice(event) {
-  const useSqs = invoiceMode === "sqs" && invoiceQueueName;
+  const useSqs = invoiceMode === "sqs" && invoiceQueueUrl;
   if (useSqs) {
-    console.log("SQS publish planned", {
-      queue: invoiceQueueName,
-      region: awsRegion,
-      orderId: event.orderId
-    });
+    if (!sqsClient) {
+      sqsClient = new SQSClient({ region: awsRegion });
+    }
+    await sqsClient.send(
+      new SendMessageCommand({
+        QueueUrl: invoiceQueueUrl,
+        MessageBody: JSON.stringify(event)
+      })
+    );
     return { mode: "sqs", queued: true };
   }
 
@@ -317,7 +323,7 @@ app.listen(port, () => {
     console.log(`Using CATALOG_SERVICE_URL=${catalogBaseUrl}`);
     console.log(`Using INVOICE_WORKER_URL=${invoiceWorkerUrl}`);
     console.log(`Using INVOICE_MODE=${invoiceMode}`);
-    console.log(`Using INVOICE_QUEUE_NAME=${invoiceQueueName || "(not set)"}`);
+    console.log(`Using INVOICE_QUEUE_URL=${invoiceQueueUrl || "(not set)"}`);
     console.log(`Using AWS_REGION=${awsRegion}`);
     console.log(`Using DATABASE_URL=${databaseUrl}`);
   });

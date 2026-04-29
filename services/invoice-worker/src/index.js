@@ -79,6 +79,10 @@ function extractInvoiceEvent(payload) {
   return payload;
 }
 
+function detectEventMode(payload) {
+  return payload && Array.isArray(payload.Records) ? "sqs" : "http";
+}
+
 app.get("/health", async (_req, res) => {
   await ensureInvoicesDir();
   res.status(200).json({
@@ -88,6 +92,7 @@ app.get("/health", async (_req, res) => {
 });
 
 app.post("/events", async (req, res) => {
+  const eventMode = detectEventMode(req.body);
   const event = extractInvoiceEvent(req.body);
   if (!event) {
     return res.status(400).json({
@@ -110,7 +115,7 @@ app.post("/events", async (req, res) => {
     const document = buildInvoiceDocument(event);
     await fs.writeFile(outputPath, document, "utf8");
 
-    console.log(`invoice_processed orderId=${event.orderId} mode=http`);
+    console.log(`invoice_processed orderId=${event.orderId} mode=${eventMode}`);
     console.log(`Invoice written: ${outputPath}`);
     console.log(`Simulated SES send to: ${event.email}`);
 
