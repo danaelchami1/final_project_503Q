@@ -73,3 +73,15 @@ curl -X POST http://127.0.0.1:3003/checkout \
 
 - This is an MVP app layer. Data stores are in-memory for most services.
 - `invoice-worker` simulates invoice generation by writing local text files.
+
+## Invoice trigger modes (Phase 2 continuation)
+
+Checkout supports:
+- `INVOICE_MODE=http` (default): POSTs invoice event to `INVOICE_WORKER_URL/events`
+- `INVOICE_MODE=sqs`: logs SQS publish intent using `INVOICE_QUEUE_NAME` and `AWS_REGION` (queue wiring by infra)
+
+Related env vars:
+- `AWS_REGION`
+- `INVOICE_QUEUE_NAME`
+- `INVOICE_BUCKET_NAME`
+- `SES_FROM_EMAIL`

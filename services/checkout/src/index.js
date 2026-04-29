@@ -9,6 +9,9 @@ const port = Number(process.env.PORT) || 3003;
 const cartBaseUrl = process.env.CART_SERVICE_URL || "http://127.0.0.1:3002";
 const catalogBaseUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
 const invoiceWorkerUrl = process.env.INVOICE_WORKER_URL || "http://127.0.0.1:3004";
+const invoiceMode = process.env.INVOICE_MODE || "http";
+const invoiceQueueName = process.env.INVOICE_QUEUE_NAME || "";
+const awsRegion = process.env.AWS_REGION || "us-east-1";
 const databaseUrl =
   process.env.DATABASE_URL ||
   "postgres://shopcloud:shopcloud@127.0.0.1:5432/shopcloud_orders";
@@ -92,6 +95,45 @@ async function getAllOrders() {
 
 function createOrderId() {
   return `ord-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+}
+
+function buildInvoiceEvent(order) {
+  return {
+    eventType: "order.confirmed",
+    orderId: order.id,
+    userId: order.userId,
+    email: order.email,
+    total: order.total,
+    currency: "USD",
+    items: order.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice
+    })),
+    timestamp: new Date().toISOString()
+  };
+}
+
+async function triggerInvoice(event) {
+  const useSqs = invoiceMode === "sqs" && invoiceQueueName;
+  if (useSqs) {
+    console.log("SQS publish planned", {
+      queue: invoiceQueueName,
+      region: awsRegion,
+      orderId: event.orderId
+    });
+    return { mode: "sqs", queued: true };
+  }
+
+  await fetchJson(`${invoiceWorkerUrl}/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(event)
+  });
+
+  return { mode: "http", queued: true };
 }
 
 function fetchJson(url, options = {}) {
@@ -233,34 +275,14 @@ app.post("/checkout", async (req, res) => {
       method: "DELETE"
     });
 
-    const invoiceEvent = {
-      eventType: "order.confirmed",
-      orderId: order.id,
-      userId: order.userId,
-      email: order.email,
-      total: order.total,
-      currency: "USD",
-      items: order.items.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice
-      })),
-      timestamp: new Date().toISOString()
-    };
+    const invoiceEvent = buildInvoiceEvent(order);
 
-    // For now we log the event. Later this becomes SQS publish.
     console.log("Invoice event:", JSON.stringify(invoiceEvent));
     try {
-      await fetchJson(`${invoiceWorkerUrl}/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(invoiceEvent)
-      });
+      const invoiceResult = await triggerInvoice(invoiceEvent);
+      console.log("Invoice trigger result:", invoiceResult);
     } catch (workerError) {
-      // Checkout remains successful even if invoice processing is temporarily unavailable.
-      console.error("Invoice worker call failed:", workerError.message);
+      console.error("Invoice trigger failed:", workerError.message);
     }
 
     return res.status(201).json({
@@ -294,6 +316,9 @@ app.listen(port, () => {
     console.log(`Using CART_SERVICE_URL=${cartBaseUrl}`);
     console.log(`Using CATALOG_SERVICE_URL=${catalogBaseUrl}`);
     console.log(`Using INVOICE_WORKER_URL=${invoiceWorkerUrl}`);
+    console.log(`Using INVOICE_MODE=${invoiceMode}`);
+    console.log(`Using INVOICE_QUEUE_NAME=${invoiceQueueName || "(not set)"}`);
+    console.log(`Using AWS_REGION=${awsRegion}`);
     console.log(`Using DATABASE_URL=${databaseUrl}`);
   });
 });
