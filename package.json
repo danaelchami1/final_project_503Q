@@ -5,5 +5,9 @@
   "description": "Root scripts for ShopCloud phase2",
   "scripts": {
     "smoke": "node scripts/smoke-test.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.1038.0",
+    "jose": "^6.2.3"
   }
 }
