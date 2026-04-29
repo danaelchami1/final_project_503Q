@@ -208,3 +208,27 @@ variable "public_acm_certificate_arn" {
   type        = string
   default     = ""
 }
+
+variable "enable_private_admin_path" {
+  description = "Enable private admin access path resources (Client VPN scaffolding)"
+  type        = bool
+  default     = false
+}
+
+variable "admin_vpn_server_certificate_arn" {
+  description = "ACM server certificate ARN for Client VPN endpoint"
+  type        = string
+  default     = ""
+}
+
+variable "admin_vpn_client_cidr" {
+  description = "CIDR block assigned to Client VPN clients"
+  type        = string
+  default     = "172.20.0.0/22"
+}
+
+variable "enable_secrets_architecture" {
+  description = "Enable KMS + Secrets Manager + SSM + IRSA resources"
+  type        = bool
+  default     = false
+}

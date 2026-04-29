@@ -31,11 +31,20 @@ spec:
             - name: AWS_REGION
               value: "us-east-1"
             - name: COGNITO_USER_POOL_ID
-              value: "us-east-1_xGQwF6j9k"
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: COGNITO_USER_POOL_ID
             - name: COGNITO_CLIENT_ID
-              value: "2pp0e4htqv4lrlt81f4lpva94o"
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: COGNITO_CLIENT_ID
             - name: COGNITO_ADMIN_GROUP
-              value: "admins"
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: COGNITO_ADMIN_GROUP
             - name: ENABLE_LOCAL_AUTH
               value: "false"
           readinessProbe:

@@ -149,3 +149,18 @@ output "cognito_admins_group_name" {
   description = "Cognito admin group name"
   value       = aws_cognito_user_group.admins.name
 }
+
+output "admin_vpn_endpoint_id" {
+  description = "Client VPN endpoint ID for private admin path"
+  value       = local.private_admin_enabled ? aws_ec2_client_vpn_endpoint.admin[0].id : null
+}
+
+output "checkout_irsa_role_arn" {
+  description = "IRSA role ARN assigned to checkout service account"
+  value       = var.enable_secrets_architecture ? aws_iam_role.checkout_irsa[0].arn : null
+}
+
+output "checkout_secret_arn" {
+  description = "Secrets Manager ARN for checkout configuration secret"
+  value       = var.enable_secrets_architecture ? aws_secretsmanager_secret.checkout[0].arn : null
+}

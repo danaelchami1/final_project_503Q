@@ -12,3 +12,7 @@ enable_rds_multi_az = true
 enable_rds_cross_region_replica = false
 dr_region = "us-west-2"
 enable_redis_multi_az = false
+enable_private_admin_path = false
+admin_vpn_server_certificate_arn = ""
+admin_vpn_client_cidr = "172.20.0.0/22"
+enable_secrets_architecture = false

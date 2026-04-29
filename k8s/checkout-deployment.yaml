@@ -19,6 +19,7 @@ spec:
       labels:
         app: checkout
     spec:
+      serviceAccountName: checkout-sa
       containers:
         - name: checkout
           image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-checkout:latest
@@ -39,13 +40,25 @@ spec:
             - name: INVOICE_WORKER_URL
               value: "http://invoice-worker:3004"
             - name: INVOICE_QUEUE_URL
-              value: "https://sqs.us-east-1.amazonaws.com/680666325893/shopcloud-dev-invoice-queue"
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: INVOICE_QUEUE_URL
             - name: INVOICE_BUCKET_NAME
-              value: "shopcloud-dev-invoices-680666325893"
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: INVOICE_BUCKET_NAME
             - name: SES_FROM_EMAIL
-              value: "noreply@shopcloud-dev.example.com"
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: SES_FROM_EMAIL
             - name: DATABASE_URL
-              value: "postgres://shopcloud:shopcloud@postgres:5432/shopcloud_orders"
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: DATABASE_URL
           readinessProbe:
             httpGet:
               path: /health
