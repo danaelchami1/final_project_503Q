@@ -16,6 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Block committed sensitive infra files
+        run: |
+          blocked=$(git ls-files | grep -E '(^|/)(terraform\.tfvars|.*\.tfstate|.*\.tfstate\.backup)$' || true)
+          if [ -n "$blocked" ]; then
+            echo "Blocked sensitive files detected:"
+            echo "$blocked"
+            exit 1
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
