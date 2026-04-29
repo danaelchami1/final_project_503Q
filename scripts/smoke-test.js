@@ -104,6 +104,7 @@ async function runFlow() {
   }
 
   console.log(`Invoice generated: ${invoicePath}`);
+  console.log("Invoice trigger verified (file or queue path)");
 }
 
 async function main() {

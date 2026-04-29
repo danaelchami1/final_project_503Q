@@ -62,6 +62,23 @@ function buildInvoiceDocument(event) {
   return lines.join("\n");
 }
 
+function extractInvoiceEvent(payload) {
+  if (
+    payload &&
+    Array.isArray(payload.Records) &&
+    payload.Records.length > 0 &&
+    payload.Records[0].body
+  ) {
+    try {
+      return JSON.parse(payload.Records[0].body);
+    } catch {
+      return null;
+    }
+  }
+
+  return payload;
+}
+
 app.get("/health", async (_req, res) => {
   await ensureInvoicesDir();
   res.status(200).json({
@@ -71,8 +88,16 @@ app.get("/health", async (_req, res) => {
 });
 
 app.post("/events", async (req, res) => {
-  const validationError = validateInvoiceEvent(req.body);
+  const event = extractInvoiceEvent(req.body);
+  if (!event) {
+    return res.status(400).json({
+      error: "Invalid event wrapper format"
+    });
+  }
+
+  const validationError = validateInvoiceEvent(event);
   if (validationError) {
+    console.error(`invoice_validation_failed reason=${validationError}`);
     return res.status(400).json({
       error: validationError
     });
@@ -80,12 +105,12 @@ app.post("/events", async (req, res) => {
 
   try {
     await ensureInvoicesDir();
-    const event = req.body;
     const fileName = `${event.orderId}.txt`;
     const outputPath = path.join(invoicesDir, fileName);
     const document = buildInvoiceDocument(event);
     await fs.writeFile(outputPath, document, "utf8");
 
+    console.log(`invoice_processed orderId=${event.orderId} mode=http`);
     console.log(`Invoice written: ${outputPath}`);
     console.log(`Simulated SES send to: ${event.email}`);
 
@@ -94,7 +119,7 @@ app.post("/events", async (req, res) => {
       invoiceFile: fileName
     });
   } catch (error) {
-    console.error("Invoice processing error:", error.message);
+    console.error(`invoice_processing_failed error=${error.message}`);
     return res.status(500).json({
       error: "Failed to process invoice event"
     });
