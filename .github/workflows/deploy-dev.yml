@@ -48,10 +48,6 @@ jobs:
         run: |
           aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
 
-      - name: Deploy manifests
-        run: |
-          kubectl apply -f k8s/
-
       - name: Update deployment images
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
