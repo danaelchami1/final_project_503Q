@@ -5,8 +5,9 @@ dist/
 build/
 .DS_Store
 Thumbs.db
-services/invoice-worker/invoices/
 .terraform/
 *.tfstate
-*.tfstate.*
-terraform.tfvars
+*.tfstate.backup
+node_modules/
+.env
+.kube/
