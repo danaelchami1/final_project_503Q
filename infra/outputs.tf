@@ -94,3 +94,18 @@ output "invoice_worker_role_arn" {
   description = "IAM role ARN for invoice worker/lambda execution"
   value       = aws_iam_role.invoice_worker_role.arn
 }
+
+output "public_edge_enabled" {
+  description = "Whether public edge resources are enabled"
+  value       = local.public_edge_enabled
+}
+
+output "public_cloudfront_domain_name" {
+  description = "CloudFront domain name for customer path"
+  value       = local.public_edge_enabled ? aws_cloudfront_distribution.public[0].domain_name : null
+}
+
+output "public_waf_arn" {
+  description = "WAF ARN attached to CloudFront distribution"
+  value       = local.public_edge_enabled ? aws_wafv2_web_acl.public_cf[0].arn : null
+}
