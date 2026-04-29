@@ -57,12 +57,12 @@ output "orders_database_url" {
 
 output "cart_redis_endpoint" {
   description = "ElastiCache Redis endpoint for cart"
-  value       = aws_elasticache_cluster.cart.cache_nodes[0].address
+  value       = var.enable_redis_multi_az ? aws_elasticache_replication_group.cart_ha[0].primary_endpoint_address : aws_elasticache_cluster.cart[0].cache_nodes[0].address
 }
 
 output "cart_redis_url" {
   description = "Redis URL for cart service"
-  value       = "redis://${aws_elasticache_cluster.cart.cache_nodes[0].address}:${aws_elasticache_cluster.cart.port}"
+  value       = var.enable_redis_multi_az ? "redis://${aws_elasticache_replication_group.cart_ha[0].primary_endpoint_address}:${aws_elasticache_replication_group.cart_ha[0].port}" : "redis://${aws_elasticache_cluster.cart[0].cache_nodes[0].address}:${aws_elasticache_cluster.cart[0].port}"
 }
 
 output "invoice_queue_url" {
@@ -93,4 +93,59 @@ output "ses_sender_email" {
 output "invoice_worker_role_arn" {
   description = "IAM role ARN for invoice worker/lambda execution"
   value       = aws_iam_role.invoice_worker_role.arn
+}
+
+output "public_edge_enabled" {
+  description = "Whether public edge resources are enabled"
+  value       = local.public_edge_enabled
+}
+
+output "public_cloudfront_domain_name" {
+  description = "CloudFront domain name for customer path"
+  value       = local.public_edge_enabled ? aws_cloudfront_distribution.public[0].domain_name : null
+}
+
+output "public_waf_arn" {
+  description = "WAF ARN attached to CloudFront distribution"
+  value       = local.public_edge_enabled ? aws_wafv2_web_acl.public_cf[0].arn : null
+}
+
+output "orders_db_dr_replica_endpoint" {
+  description = "Cross-region RDS read replica endpoint for DR"
+  value       = var.enable_rds_cross_region_replica ? aws_db_instance.orders_replica_dr[0].address : null
+}
+
+output "cognito_customers_user_pool_id" {
+  description = "Cognito user pool ID for customer users"
+  value       = aws_cognito_user_pool.customers.id
+}
+
+output "cognito_customers_user_pool_arn" {
+  description = "Cognito user pool ARN for customer users"
+  value       = aws_cognito_user_pool.customers.arn
+}
+
+output "cognito_customers_client_id" {
+  description = "Cognito app client ID for customer auth"
+  value       = aws_cognito_user_pool_client.customers_app.id
+}
+
+output "cognito_admins_user_pool_id" {
+  description = "Cognito user pool ID for admin users"
+  value       = aws_cognito_user_pool.admins.id
+}
+
+output "cognito_admins_user_pool_arn" {
+  description = "Cognito user pool ARN for admin users"
+  value       = aws_cognito_user_pool.admins.arn
+}
+
+output "cognito_admins_client_id" {
+  description = "Cognito app client ID for admin auth"
+  value       = aws_cognito_user_pool_client.admins_app.id
+}
+
+output "cognito_admins_group_name" {
+  description = "Cognito admin group name"
+  value       = aws_cognito_user_group.admins.name
 }

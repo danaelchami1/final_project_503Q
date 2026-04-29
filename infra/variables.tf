@@ -130,3 +130,81 @@ variable "ses_from_email" {
   type        = string
   default     = "noreply@shopcloud-dev.example.com"
 }
+
+variable "enable_rds_multi_az" {
+  description = "Enable Multi-AZ deployment for primary RDS instance"
+  type        = bool
+  default     = true
+}
+
+variable "enable_rds_cross_region_replica" {
+  description = "Enable cross-region RDS read replica for DR"
+  type        = bool
+  default     = false
+}
+
+variable "dr_region" {
+  description = "Disaster recovery region for cross-region read replica"
+  type        = string
+  default     = "us-west-2"
+}
+
+variable "db_backup_retention_period" {
+  description = "Number of days to retain automated RDS backups"
+  type        = number
+  default     = 7
+}
+
+variable "db_backup_window" {
+  description = "Preferred backup window for RDS"
+  type        = string
+  default     = "03:00-04:00"
+}
+
+variable "db_maintenance_window" {
+  description = "Preferred maintenance window for RDS"
+  type        = string
+  default     = "sun:04:00-sun:05:00"
+}
+
+variable "enable_redis_multi_az" {
+  description = "Enable Multi-AZ Redis replication group for cart"
+  type        = bool
+  default     = false
+}
+
+variable "enable_public_edge" {
+  description = "Enable public edge chain Route53 -> CloudFront -> WAF for customer path"
+  type        = bool
+  default     = false
+}
+
+variable "root_domain_name" {
+  description = "Route53 public hosted zone root domain (example.com)"
+  type        = string
+  default     = ""
+}
+
+variable "public_hostname" {
+  description = "Public customer hostname (for example shop.example.com)"
+  type        = string
+  default     = ""
+}
+
+variable "public_alb_dns_name" {
+  description = "Public ALB DNS name used as CloudFront origin"
+  type        = string
+  default     = ""
+}
+
+variable "public_alb_zone_id" {
+  description = "Route53 zone ID of the public ALB (for alias records when needed)"
+  type        = string
+  default     = ""
+}
+
+variable "public_acm_certificate_arn" {
+  description = "ACM certificate ARN in us-east-1 for CloudFront"
+  type        = string
+  default     = ""
+}
