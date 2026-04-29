@@ -2,7 +2,12 @@ name: Deploy Dev
 
 on:
   push:
-    branches: [develop, phase2-continuation]
+    branches: [main, develop, phase2-continuation]
+    paths:
+      - "services/**"
+      - "k8s/**"
+      - ".github/workflows/deploy-dev.yml"
+      - "docker-compose.yml"
   workflow_dispatch:
 
 jobs:
