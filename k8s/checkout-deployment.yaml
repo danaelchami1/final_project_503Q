@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout
+  labels:
+    app: checkout
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: checkout
+  template:
+    metadata:
+      labels:
+        app: checkout
+    spec:
+      containers:
+        - name: checkout
+          image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-checkout:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3003
+          env:
+            - name: PORT
+              value: "3003"
+            - name: CART_SERVICE_URL
+              value: "http://cart:3002"
+            - name: CATALOG_SERVICE_URL
+              value: "http://catalog:3001"
+            - name: INVOICE_WORKER_URL
+              value: "http://invoice-worker:3004"
+            - name: DATABASE_URL
+              value: "postgres://shopcloud:shopcloud@postgres:5432/shopcloud_orders"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 15
+            periodSeconds: 20

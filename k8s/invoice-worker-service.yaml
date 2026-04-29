@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: invoice-worker
+  labels:
+    app: invoice-worker
+spec:
+  selector:
+    app: invoice-worker
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3004
+      targetPort: 3004
+  type: ClusterIP
