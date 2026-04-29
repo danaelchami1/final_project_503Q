@@ -6,7 +6,31 @@ on:
     branches: [main, develop, phase2-continuation]
 
 jobs:
+  validate-services:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [catalog, cart, checkout, auth, admin, invoice-worker]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: ./services/${{ matrix.service }}
+        run: npm ci
+
+      - name: Validate entrypoint syntax
+        working-directory: ./services/${{ matrix.service }}
+        run: node --check src/index.js
+
   build-services:
+    needs: validate-services
     runs-on: ubuntu-latest
     strategy:
       matrix:
