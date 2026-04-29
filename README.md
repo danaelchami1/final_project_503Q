@@ -73,3 +73,23 @@ curl -X POST http://127.0.0.1:3003/checkout \
 
 - This is an MVP app layer. Data stores are in-memory for most services.
 - `invoice-worker` simulates invoice generation by writing local text files.
+
+## CI/CD and Async Infra (Person B track)
+
+- Terraform now includes async infrastructure in `infra/async.tf`:
+  - `SQS` invoice queue + DLQ
+  - `S3` invoice bucket
+  - `SES` sender identity
+  - IAM role/policy for invoice worker or Lambda execution
+- GitHub Actions deploy workflows are configured to:
+  - build and push all service images to ECR
+  - update Kubernetes deployment images by tag
+  - wait for rollout status checks
+
+Required GitHub environment secrets (`dev` and `prod`):
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION`
+- `ECR_REGISTRY`
+- `EKS_CLUSTER_NAME`

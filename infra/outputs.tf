@@ -64,3 +64,33 @@ output "cart_redis_url" {
   description = "Redis URL for cart service"
   value       = "redis://${aws_elasticache_cluster.cart.cache_nodes[0].address}:${aws_elasticache_cluster.cart.port}"
 }
+
+output "invoice_queue_url" {
+  description = "SQS queue URL for invoice jobs"
+  value       = aws_sqs_queue.invoice_queue.id
+}
+
+output "invoice_queue_arn" {
+  description = "SQS queue ARN for invoice jobs"
+  value       = aws_sqs_queue.invoice_queue.arn
+}
+
+output "invoice_dlq_url" {
+  description = "SQS dead-letter queue URL for invoice jobs"
+  value       = aws_sqs_queue.invoice_dlq.id
+}
+
+output "invoice_bucket_name" {
+  description = "S3 bucket for generated invoices"
+  value       = aws_s3_bucket.invoices.bucket
+}
+
+output "ses_sender_email" {
+  description = "SES sender identity email"
+  value       = aws_ses_email_identity.invoice_sender.email
+}
+
+output "invoice_worker_role_arn" {
+  description = "IAM role ARN for invoice worker/lambda execution"
+  value       = aws_iam_role.invoice_worker_role.arn
+}
