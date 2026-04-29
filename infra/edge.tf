@@ -3,15 +3,55 @@ locals {
     var.enable_public_edge &&
     var.root_domain_name != "" &&
     var.public_hostname != "" &&
-    var.public_alb_dns_name != "" &&
-    var.public_acm_certificate_arn != ""
+    var.public_alb_dns_name != ""
   )
+
+  use_existing_public_cert = var.public_acm_certificate_arn != ""
 }
 
-data "aws_route53_zone" "public" {
-  count        = local.public_edge_enabled ? 1 : 0
-  name         = var.root_domain_name
-  private_zone = false
+resource "aws_route53_zone" "public" {
+  count = local.public_edge_enabled ? 1 : 0
+  name  = var.root_domain_name
+
+  tags = local.common_tags
+}
+
+resource "aws_acm_certificate" "public" {
+  count    = local.public_edge_enabled && !local.use_existing_public_cert ? 1 : 0
+  provider = aws.us_east_1
+
+  domain_name       = var.public_hostname
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_route53_record" "public_cert_validation" {
+  for_each = local.public_edge_enabled && !local.use_existing_public_cert ? {
+    for dvo in aws_acm_certificate.public[0].domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  } : {}
+
+  zone_id = aws_route53_zone.public[0].zone_id
+  name    = each.value.name
+  type    = each.value.type
+  ttl     = 60
+  records = [each.value.record]
+}
+
+resource "aws_acm_certificate_validation" "public" {
+  count    = local.public_edge_enabled && !local.use_existing_public_cert ? 1 : 0
+  provider = aws.us_east_1
+
+  certificate_arn         = aws_acm_certificate.public[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.public_cert_validation : record.fqdn]
 }
 
 resource "aws_wafv2_web_acl" "public_cf" {
@@ -102,7 +142,7 @@ resource "aws_cloudfront_distribution" "public" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = var.public_acm_certificate_arn
+    acm_certificate_arn      = local.use_existing_public_cert ? var.public_acm_certificate_arn : aws_acm_certificate_validation.public[0].certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
@@ -113,7 +153,7 @@ resource "aws_cloudfront_distribution" "public" {
 resource "aws_route53_record" "public_customer" {
   count = local.public_edge_enabled ? 1 : 0
 
-  zone_id = data.aws_route53_zone.public[0].zone_id
+  zone_id = aws_route53_zone.public[0].zone_id
   name    = var.public_hostname
   type    = "A"
 
