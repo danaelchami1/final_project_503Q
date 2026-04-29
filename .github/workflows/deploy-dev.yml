@@ -48,6 +48,24 @@ jobs:
         run: |
           aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
 
+      - name: Stabilize deployment strategies
+        run: |
+          # Keep single replicas on constrained nodes to avoid rollout deadlocks.
+          kubectl scale deployment/catalog --replicas=1
+          kubectl scale deployment/cart --replicas=1
+          kubectl scale deployment/checkout --replicas=1
+          kubectl scale deployment/auth --replicas=1
+          kubectl scale deployment/admin --replicas=1
+          kubectl scale deployment/invoice-worker --replicas=1
+
+          # Force no-surge rollout behavior to prevent pending surge pods.
+          kubectl patch deployment/catalog --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/cart --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/checkout --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/auth --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/admin --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          kubectl patch deployment/invoice-worker --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+
       - name: Update deployment images
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
