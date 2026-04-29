@@ -7,6 +7,10 @@ const port = Number(process.env.PORT) || 3005;
 const awsRegion = process.env.AWS_REGION || "us-east-1";
 const cognitoUserPoolId = process.env.COGNITO_USER_POOL_ID || "";
 const cognitoClientId = process.env.COGNITO_CLIENT_ID || "";
+const cognitoCustomersUserPoolId = process.env.COGNITO_CUSTOMERS_USER_POOL_ID || "";
+const cognitoCustomersClientId = process.env.COGNITO_CUSTOMERS_CLIENT_ID || "";
+const cognitoAdminsUserPoolId = process.env.COGNITO_ADMINS_USER_POOL_ID || "";
+const cognitoAdminsClientId = process.env.COGNITO_ADMINS_CLIENT_ID || "";
 const cognitoAdminGroup = process.env.COGNITO_ADMIN_GROUP || "admin";
 const enableLocalAuth = String(process.env.ENABLE_LOCAL_AUTH || "false") === "true";
 
@@ -54,16 +58,44 @@ function readBearerToken(authorizationHeader) {
   return token;
 }
 
-function getCognitoIssuer() {
-  return `https://cognito-idp.${awsRegion}.amazonaws.com/${cognitoUserPoolId}`;
+const jwksByIssuer = new Map();
+
+function getCognitoConfigs() {
+  const configs = [];
+
+  if (cognitoCustomersUserPoolId && cognitoCustomersClientId) {
+    configs.push({
+      poolId: cognitoCustomersUserPoolId,
+      clientId: cognitoCustomersClientId
+    });
+  }
+
+  if (cognitoAdminsUserPoolId && cognitoAdminsClientId) {
+    configs.push({
+      poolId: cognitoAdminsUserPoolId,
+      clientId: cognitoAdminsClientId
+    });
+  }
+
+  if (configs.length === 0 && cognitoUserPoolId && cognitoClientId) {
+    configs.push({
+      poolId: cognitoUserPoolId,
+      clientId: cognitoClientId
+    });
+  }
+
+  return configs;
 }
 
 function isCognitoConfigured() {
-  return Boolean(cognitoUserPoolId && cognitoClientId);
+  return getCognitoConfigs().length > 0;
 }
 
-function getJwks() {
-  return createRemoteJWKSet(new URL(`${getCognitoIssuer()}/.well-known/jwks.json`));
+function getJwksForIssuer(issuer) {
+  if (!jwksByIssuer.has(issuer)) {
+    jwksByIssuer.set(issuer, createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`)));
+  }
+  return jwksByIssuer.get(issuer);
 }
 
 function claimsToSession(payload) {
@@ -79,18 +111,26 @@ function claimsToSession(payload) {
 }
 
 async function verifyCognitoToken(token) {
-  const { payload } = await jwtVerify(token, getJwks(), {
-    issuer: getCognitoIssuer()
-  });
+  const configs = getCognitoConfigs();
+  let lastError = null;
 
-  const aud = payload.aud;
-  const clientId = payload.client_id;
-  const tokenClientOk = aud === cognitoClientId || clientId === cognitoClientId;
-  if (!tokenClientOk) {
-    throw new Error("Token client mismatch");
+  for (const config of configs) {
+    const issuer = `https://cognito-idp.${awsRegion}.amazonaws.com/${config.poolId}`;
+    try {
+      const { payload } = await jwtVerify(token, getJwksForIssuer(issuer), { issuer });
+      const aud = payload.aud;
+      const clientId = payload.client_id;
+      const tokenClientOk = aud === config.clientId || clientId === config.clientId;
+      if (!tokenClientOk) {
+        throw new Error("Token client mismatch");
+      }
+      return claimsToSession(payload);
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  return claimsToSession(payload);
+  throw lastError || new Error("Token verification failed");
 }
 
 async function requireAuth(req, res, next) {
@@ -248,6 +288,10 @@ app.listen(port, () => {
   console.log(`Using AWS_REGION=${awsRegion}`);
   console.log(`Using COGNITO_USER_POOL_ID=${cognitoUserPoolId || "(not set)"}`);
   console.log(`Using COGNITO_CLIENT_ID=${cognitoClientId || "(not set)"}`);
+  console.log(`Using COGNITO_CUSTOMERS_USER_POOL_ID=${cognitoCustomersUserPoolId || "(not set)"}`);
+  console.log(`Using COGNITO_CUSTOMERS_CLIENT_ID=${cognitoCustomersClientId || "(not set)"}`);
+  console.log(`Using COGNITO_ADMINS_USER_POOL_ID=${cognitoAdminsUserPoolId || "(not set)"}`);
+  console.log(`Using COGNITO_ADMINS_CLIENT_ID=${cognitoAdminsClientId || "(not set)"}`);
   console.log(`Using COGNITO_ADMIN_GROUP=${cognitoAdminGroup}`);
   console.log(`Using ENABLE_LOCAL_AUTH=${enableLocalAuth}`);
 });

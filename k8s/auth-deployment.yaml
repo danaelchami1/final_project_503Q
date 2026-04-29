@@ -40,6 +40,30 @@ spec:
                 secretKeyRef:
                   name: shopcloud-app-secrets
                   key: COGNITO_CLIENT_ID
+            - name: COGNITO_CUSTOMERS_USER_POOL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: COGNITO_CUSTOMERS_USER_POOL_ID
+                  optional: true
+            - name: COGNITO_CUSTOMERS_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: COGNITO_CUSTOMERS_CLIENT_ID
+                  optional: true
+            - name: COGNITO_ADMINS_USER_POOL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: COGNITO_ADMINS_USER_POOL_ID
+                  optional: true
+            - name: COGNITO_ADMINS_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: COGNITO_ADMINS_CLIENT_ID
+                  optional: true
             - name: COGNITO_ADMIN_GROUP
               valueFrom:
                 secretKeyRef:
