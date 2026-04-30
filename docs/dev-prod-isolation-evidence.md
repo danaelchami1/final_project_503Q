@@ -76,3 +76,39 @@ Reference CI control:
 - [ ] Env-specific Terraform variable files used
 - [ ] Cluster context/account evidence captured
 - [ ] Secret handling evidence captured
+
+## 7) Private admin path proof (internal-only)
+
+Implemented controls:
+- Terraform gates private admin resources behind `enable_private_admin_path` and a non-empty VPN certificate ARN in `infra/private_admin.tf`.
+- Admin ingress is explicitly internal ALB only in `k8s/admin-private-ingress.yaml`:
+  - `kubernetes.io/ingress.class: alb`
+  - `alb.ingress.kubernetes.io/scheme: internal`
+- Admin service is `ClusterIP` in `k8s/admin-service.yaml` (not internet exposed).
+
+Evidence commands:
+
+```bash
+# Terraform plan with private admin enabled (use your real prod tfvars)
+terraform -chdir=infra plan -var-file=envs/prod.tfvars
+
+# Validate ingress and service are internal-only
+kubectl get ingress admin-private -o yaml
+kubectl get svc admin -o yaml
+
+# Get ALB hostname created for admin ingress
+kubectl get ingress admin-private -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```
+
+Capture:
+- Terraform plan snippet showing `aws_ec2_client_vpn_endpoint` and related VPN resources to be created/enabled.
+- Ingress YAML snippet showing `alb.ingress.kubernetes.io/scheme: internal`.
+- Service YAML snippet showing `type: ClusterIP`.
+- AWS EC2/ELB console screenshot showing admin ALB is `internal` and not internet-facing.
+- One negative test note: admin URL is unreachable from public internet but reachable only from VPN-connected client.
+
+Expected pass criteria:
+- Admin path has no public Route53 record.
+- Admin ALB is internal scheme.
+- Admin service remains ClusterIP-only.
+- Access requires VPN/private network path.
