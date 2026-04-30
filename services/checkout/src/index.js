@@ -18,7 +18,7 @@ let invoiceQueueUrl = process.env.INVOICE_QUEUE_URL || "";
 let invoiceMode = process.env.INVOICE_MODE || (invoiceQueueUrl ? "sqs" : "http");
 let databaseUrl =
   process.env.DATABASE_URL ||
-  "postgres://shopcloud:shopcloud@127.0.0.1:5432/shopcloud_orders";
+  `postgres://${process.env.POSTGRES_USER || "shopcloud"}:${process.env.POSTGRES_PASSWORD || "change-me-postgres"}@${process.env.POSTGRES_HOST || "127.0.0.1"}:${process.env.POSTGRES_PORT || "5432"}/${process.env.POSTGRES_DB || "shopcloud_orders"}`;
 
 app.use(express.json());
 

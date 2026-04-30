@@ -114,7 +114,7 @@ async function runFlow() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: "customer@example.com",
-        password: "customer123"
+        password: process.env.SMOKE_AUTH_PASSWORD || "change-me-customer"
       })
     });
 

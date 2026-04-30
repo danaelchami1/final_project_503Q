@@ -65,7 +65,7 @@ Login as admin:
 ```bash
 curl -X POST http://127.0.0.1:3005/auth/login \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"admin@example.com\",\"password\":\"admin123\"}"
+  -d "{\"email\":\"admin@example.com\",\"password\":\"change-me-admin\"}"
 ```
 
 Checkout:

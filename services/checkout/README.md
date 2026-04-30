@@ -30,7 +30,12 @@ Minimal ShopCloud checkout microservice.
 - `PORT` (default: `3003`)
 - `CART_SERVICE_URL` (default: `http://127.0.0.1:3002`)
 - `CATALOG_SERVICE_URL` (default: `http://127.0.0.1:3001`)
-- `DATABASE_URL` (default: `postgres://shopcloud:shopcloud@127.0.0.1:5432/shopcloud_orders`)
+- `DATABASE_URL` (optional; otherwise built from `POSTGRES_*` env vars)
+- `POSTGRES_USER` (default: `shopcloud`)
+- `POSTGRES_PASSWORD` (default: `change-me-postgres`)
+- `POSTGRES_HOST` (default: `127.0.0.1`)
+- `POSTGRES_PORT` (default: `5432`)
+- `POSTGRES_DB` (default: `shopcloud_orders`)
 
 ## Run locally
 

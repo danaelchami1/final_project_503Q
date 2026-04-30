@@ -30,6 +30,13 @@ spec:
             - name: frontend-config
               mountPath: /usr/share/nginx/html/app.js
               subPath: app.js
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
           readinessProbe:
             httpGet:
               path: /health

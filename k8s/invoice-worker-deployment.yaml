@@ -22,7 +22,7 @@ spec:
       serviceAccountName: invoice-worker-sa
       containers:
         - name: invoice-worker
-          image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-invoice-worker:latest
+          image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-invoice-worker:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 3004
@@ -51,6 +51,13 @@ spec:
                 secretKeyRef:
                   name: shopcloud-app-secrets
                   key: SES_FROM_EMAIL
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
           readinessProbe:
             httpGet:
               path: /health

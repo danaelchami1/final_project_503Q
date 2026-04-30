@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: auth
-          image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-auth:latest
+          image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-auth:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 3005
@@ -44,6 +44,13 @@ spec:
               value: "admins"
             - name: ENABLE_LOCAL_AUTH
               value: "false"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
           readinessProbe:
             httpGet:
               path: /health

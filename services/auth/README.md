@@ -13,8 +13,8 @@ Minimal ShopCloud auth microservice.
 
 ## Seed users
 
-- Customer: `customer@example.com` / `customer123`
-- Admin: `admin@example.com` / `admin123`
+- Customer: `customer@example.com` / value of `LOCAL_AUTH_CUSTOMER_PASSWORD` (default `change-me-customer`)
+- Admin: `admin@example.com` / value of `LOCAL_AUTH_ADMIN_PASSWORD` (default `change-me-admin`)
 
 ## Request examples
 
@@ -33,7 +33,7 @@ Minimal ShopCloud auth microservice.
 ```json
 {
   "email": "customer@example.com",
-  "password": "customer123"
+  "password": "change-me-customer"
 }
 ```
 

@@ -27,18 +27,26 @@ const authSsmAdminGroupParam = process.env.AUTH_SSM_ADMIN_GROUP_PARAM || "";
 
 app.use(express.json());
 
+function hashPassword(password) {
+  return crypto.createHash("sha256").update(String(password)).digest("hex");
+}
+
+function getDevUserPassword(envKey, fallback) {
+  return hashPassword(process.env[envKey] || fallback);
+}
+
 // Local fallback for development only.
 const users = [
   {
     id: "u1",
     email: "customer@example.com",
-    password: "customer123",
+    passwordHash: getDevUserPassword("LOCAL_AUTH_CUSTOMER_PASSWORD", "change-me-customer"),
     role: "customer"
   },
   {
     id: "a1",
     email: "admin@example.com",
-    password: "admin123",
+    passwordHash: getDevUserPassword("LOCAL_AUTH_ADMIN_PASSWORD", "change-me-admin"),
     role: "admin"
   }
 ];
@@ -287,7 +295,7 @@ app.post("/auth/register", (req, res) => {
   const newUser = {
     id: `u-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     email,
-    password,
+    passwordHash: hashPassword(password),
     role: selectedRole
   };
   users.push(newUser);
@@ -308,7 +316,7 @@ app.post("/auth/login", (req, res) => {
   const user = users.find(
     (entry) =>
       entry.email.toLowerCase() === String(email || "").toLowerCase() &&
-      entry.password === password
+      entry.passwordHash === hashPassword(password)
   );
 
   if (!user) {

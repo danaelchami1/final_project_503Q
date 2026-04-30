@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: shopcloud-postgres
     environment:
-      - POSTGRES_USER=shopcloud
-      - POSTGRES_PASSWORD=shopcloud
-      - POSTGRES_DB=shopcloud_orders
+      - POSTGRES_USER=${POSTGRES_USER:-shopcloud}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-shopcloud_orders}
     ports:
       - "5432:5432"
     volumes:
@@ -79,7 +79,7 @@ services:
       - CART_SERVICE_URL=http://cart:3002
       - CATALOG_SERVICE_URL=http://catalog:3001
       - INVOICE_WORKER_URL=http://invoice-worker:3004
-      - DATABASE_URL=postgres://shopcloud:shopcloud@postgres:5432/shopcloud_orders
+      - DATABASE_URL=postgres://${POSTGRES_USER:-shopcloud}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shopcloud_orders}
     ports:
       - "3003:3003"
     depends_on:

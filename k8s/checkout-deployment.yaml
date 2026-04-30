@@ -22,7 +22,7 @@ spec:
       serviceAccountName: checkout-sa
       containers:
         - name: checkout
-          image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-checkout:latest
+          image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-checkout:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 3003
@@ -43,6 +43,13 @@ spec:
               value: "http://catalog:3001"
             - name: INVOICE_WORKER_URL
               value: "http://invoice-worker:3004"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
           readinessProbe:
             httpGet:
               path: /health
