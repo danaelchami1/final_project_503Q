@@ -68,6 +68,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate docker compose definition
+        env:
+          POSTGRES_USER: shopcloud
+          POSTGRES_DB: shopcloud_orders
+          POSTGRES_PASSWORD: ci-postgres-password
         run: docker compose config -q
 
   lint-dockerfiles:
@@ -148,6 +152,10 @@ jobs:
         run: npm ci
 
       - name: Start local integration stack
+        env:
+          POSTGRES_USER: shopcloud
+          POSTGRES_DB: shopcloud_orders
+          POSTGRES_PASSWORD: ci-postgres-password
         run: docker compose up -d --build
 
       - name: Wait for stack boot
@@ -180,6 +188,10 @@ jobs:
 
       - name: Teardown local integration stack
         if: always()
+        env:
+          POSTGRES_USER: shopcloud
+          POSTGRES_DB: shopcloud_orders
+          POSTGRES_PASSWORD: ci-postgres-password
         run: docker compose down -v
 
   security-audit:
