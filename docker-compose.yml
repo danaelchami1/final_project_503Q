@@ -33,6 +33,7 @@ services:
     environment:
       - PORT=3002
       - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth:3005
     ports:
       - "3002:3002"
     depends_on:
@@ -79,6 +80,7 @@ services:
       - CART_SERVICE_URL=http://cart:3002
       - CATALOG_SERVICE_URL=http://catalog:3001
       - INVOICE_WORKER_URL=http://invoice-worker:3004
+      - AUTH_SERVICE_URL=http://auth:3005
       - DATABASE_URL=postgres://${POSTGRES_USER:-shopcloud}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shopcloud_orders}
     ports:
       - "3003:3003"

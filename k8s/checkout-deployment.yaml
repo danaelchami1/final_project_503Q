@@ -43,6 +43,8 @@ spec:
               value: "http://catalog:3001"
             - name: INVOICE_WORKER_URL
               value: "http://invoice-worker:3004"
+            - name: AUTH_SERVICE_URL
+              value: "http://auth:3005"
           resources:
             requests:
               cpu: 100m

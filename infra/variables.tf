@@ -215,6 +215,30 @@ variable "public_alb_dns_name" {
   default     = ""
 }
 
+variable "enable_public_alb" {
+  description = "Create a Terraform-managed public ALB for customer traffic"
+  type        = bool
+  default     = false
+}
+
+variable "enable_internal_admin_alb" {
+  description = "Create a Terraform-managed internal ALB for admin traffic"
+  type        = bool
+  default     = false
+}
+
+variable "public_alb_certificate_arn" {
+  description = "Optional ACM certificate ARN for public ALB HTTPS listener"
+  type        = string
+  default     = ""
+}
+
+variable "enable_shield_advanced" {
+  description = "Enable AWS Shield Advanced protections for eligible edge resources"
+  type        = bool
+  default     = false
+}
+
 variable "public_alb_zone_id" {
   description = "Route53 zone ID of the public ALB (for alias records when needed)"
   type        = string

@@ -30,6 +30,9 @@ spec:
             - name: frontend-config
               mountPath: /usr/share/nginx/html/app.js
               subPath: app.js
+            - name: frontend-config
+              mountPath: /usr/share/nginx/html/styles.css
+              subPath: styles.css
           resources:
             requests:
               cpu: 50m

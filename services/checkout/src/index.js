@@ -11,6 +11,7 @@ const port = Number(process.env.PORT) || 3003;
 const cartBaseUrl = process.env.CART_SERVICE_URL || "http://127.0.0.1:3002";
 const catalogBaseUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
 const invoiceWorkerUrl = process.env.INVOICE_WORKER_URL || "http://127.0.0.1:3004";
+const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3005";
 const awsRegion = process.env.AWS_REGION || "us-east-1";
 const checkoutConfigSecretId = process.env.CHECKOUT_CONFIG_SECRET_ID || "";
 const useAwsSecrets = String(process.env.USE_AWS_SECRETS || "false") === "true";
@@ -27,6 +28,19 @@ let dbPool = null;
 let dbReady = false;
 let sqsClient = null;
 let secretsManagerClient = null;
+
+function readBearerToken(authorizationHeader) {
+  if (!authorizationHeader || typeof authorizationHeader !== "string") {
+    return null;
+  }
+
+  const [prefix, token] = authorizationHeader.split(" ");
+  if (prefix !== "Bearer" || !token) {
+    return null;
+  }
+
+  return token;
+}
 
 function getSecretsManagerClient() {
   if (!secretsManagerClient) {
@@ -237,6 +251,40 @@ function fetchJson(url, options = {}) {
   });
 }
 
+async function requireAuth(req, res, next) {
+  const token = readBearerToken(req.headers.authorization);
+  if (!token) {
+    return res.status(401).json({
+      error: "Missing or invalid Authorization header"
+    });
+  }
+
+  try {
+    const response = await fetchJson(`${authServiceUrl}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    req.session = response.user;
+    req.accessToken = token;
+    return next();
+  } catch (error) {
+    return res.status(error.status || 401).json({
+      error: "Authentication failed",
+      details: error.body || error.message
+    });
+  }
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.session || req.session.role !== "admin") {
+    return res.status(403).json({
+      error: "Requires admin role"
+    });
+  }
+  return next();
+}
+
 app.get("/health", (_req, res) => {
   res.status(200).json({
     service: "checkout",
@@ -244,7 +292,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.get("/orders", async (_req, res) => {
+app.get("/orders", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const allOrders = await getAllOrders();
     res.status(200).json(allOrders);
@@ -256,23 +304,23 @@ app.get("/orders", async (_req, res) => {
   }
 });
 
-app.post("/checkout", async (req, res) => {
+app.post("/checkout", requireAuth, async (req, res) => {
   try {
-    const { userId, email } = req.body || {};
+    const { userId: requestedUserId, email: requestedEmail } = req.body || {};
+    const isAdmin = req.session.role === "admin";
+    const userId = isAdmin && requestedUserId ? requestedUserId : req.session.id;
+    const email = isAdmin && requestedEmail ? requestedEmail : req.session.email;
 
     if (!userId || typeof userId !== "string") {
-      return res.status(400).json({
-        error: "userId is required and must be a string"
-      });
+      return res.status(400).json({ error: "Unable to resolve checkout user id from token" });
     }
-
     if (!email || typeof email !== "string") {
-      return res.status(400).json({
-        error: "email is required and must be a string"
-      });
+      return res.status(400).json({ error: "Unable to resolve checkout email from token" });
     }
 
-    const cartResponse = await fetchJson(`${cartBaseUrl}/cart/${userId}`);
+    const cartResponse = await fetchJson(`${cartBaseUrl}/cart/${userId}`, {
+      headers: { Authorization: `Bearer ${req.accessToken}` }
+    });
     const cartItems = cartResponse.items || [];
 
     if (!Array.isArray(cartItems) || cartItems.length === 0) {
@@ -312,7 +360,8 @@ app.post("/checkout", async (req, res) => {
     await saveOrder(order);
 
     await fetchJson(`${cartBaseUrl}/cart/${userId}`, {
-      method: "DELETE"
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${req.accessToken}` }
     });
 
     const invoiceEvent = buildInvoiceEvent(order);
@@ -362,6 +411,7 @@ app.listen(port, () => {
       console.log(`Using CART_SERVICE_URL=${cartBaseUrl}`);
       console.log(`Using CATALOG_SERVICE_URL=${catalogBaseUrl}`);
       console.log(`Using INVOICE_WORKER_URL=${invoiceWorkerUrl}`);
+      console.log(`Using AUTH_SERVICE_URL=${authServiceUrl}`);
       console.log(`Using INVOICE_MODE=${invoiceMode}`);
       console.log(`Using INVOICE_QUEUE_URL=${invoiceQueueUrl || "(not set)"}`);
       console.log(`Using AWS_REGION=${awsRegion}`);

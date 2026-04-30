@@ -185,6 +185,26 @@ output "checkout_secret_arn" {
   value       = var.enable_secrets_architecture ? aws_secretsmanager_secret.checkout[0].arn : null
 }
 
+output "auth_irsa_role_arn" {
+  description = "IRSA role ARN assigned to auth service account"
+  value       = var.enable_secrets_architecture ? aws_iam_role.auth_irsa[0].arn : null
+}
+
+output "service_ecr_repository_urls" {
+  description = "ECR repository URLs for ShopCloud services"
+  value       = { for name, repo in aws_ecr_repository.services : name => repo.repository_url }
+}
+
+output "public_alb_dns_name" {
+  description = "DNS name of Terraform-managed public ALB"
+  value       = var.enable_public_alb ? aws_lb.public[0].dns_name : null
+}
+
+output "internal_admin_alb_dns_name" {
+  description = "DNS name of Terraform-managed internal admin ALB"
+  value       = var.enable_internal_admin_alb ? aws_lb.admin_internal[0].dns_name : null
+}
+
 output "invoice_queue_depth_alarm_name" {
   description = "CloudWatch alarm for high invoice queue depth"
   value       = aws_cloudwatch_metric_alarm.invoice_queue_depth_high.alarm_name

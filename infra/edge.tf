@@ -1,9 +1,10 @@
 locals {
+  effective_public_alb_dns_name = var.public_alb_dns_name != "" ? var.public_alb_dns_name : (var.enable_public_alb ? aws_lb.public[0].dns_name : "")
   public_edge_enabled = (
     var.enable_public_edge &&
     var.root_domain_name != "" &&
     var.public_hostname != "" &&
-    var.public_alb_dns_name != ""
+    local.effective_public_alb_dns_name != ""
   )
 
   use_existing_public_cert = var.public_acm_certificate_arn != ""
@@ -107,7 +108,7 @@ resource "aws_cloudfront_distribution" "public" {
   web_acl_id      = aws_wafv2_web_acl.public_cf[0].arn
 
   origin {
-    domain_name = var.public_alb_dns_name
+    domain_name = local.effective_public_alb_dns_name
     origin_id   = "shopcloud-public-alb"
 
     custom_origin_config {

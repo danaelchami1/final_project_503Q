@@ -13,6 +13,14 @@ const authBaseUrl = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3005";
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
+function buildAuthHeader(req) {
+  const authorization = req.headers.authorization;
+  if (!authorization || typeof authorization !== "string") {
+    return {};
+  }
+  return { Authorization: authorization };
+}
+
 function requestJson(url, options = {}) {
   return new Promise((resolve, reject) => {
     const urlObject = new URL(url);
@@ -83,7 +91,11 @@ app.get("/api/products", async (req, res) => {
 
 app.get("/api/cart/:userId", async (req, res) => {
   try {
-    const data = await requestJson(`${cartBaseUrl}/cart/${req.params.userId}`);
+    const data = await requestJson(`${cartBaseUrl}/cart/${req.params.userId}`, {
+      headers: {
+        ...buildAuthHeader(req)
+      }
+    });
     res.status(200).json(data);
   } catch (error) {
     res.status(error.status || 500).json(error.body || { error: error.message });
@@ -94,7 +106,7 @@ app.post("/api/cart/:userId/items", async (req, res) => {
   try {
     const data = await requestJson(`${cartBaseUrl}/cart/${req.params.userId}/items`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...buildAuthHeader(req) },
       body: JSON.stringify(req.body || {})
     });
     res.status(201).json(data);
@@ -106,7 +118,10 @@ app.post("/api/cart/:userId/items", async (req, res) => {
 app.delete("/api/cart/:userId", async (req, res) => {
   try {
     const data = await requestJson(`${cartBaseUrl}/cart/${req.params.userId}`, {
-      method: "DELETE"
+      method: "DELETE",
+      headers: {
+        ...buildAuthHeader(req)
+      }
     });
     res.status(200).json(data);
   } catch (error) {
@@ -118,7 +133,7 @@ app.post("/api/checkout", async (req, res) => {
   try {
     const data = await requestJson(`${checkoutBaseUrl}/checkout`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...buildAuthHeader(req) },
       body: JSON.stringify(req.body || {})
     });
     res.status(201).json(data);
@@ -142,7 +157,37 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/api/orders", async (_req, res) => {
   try {
-    const data = await requestJson(`${checkoutBaseUrl}/orders`);
+    const data = await requestJson(`${checkoutBaseUrl}/orders`, {
+      headers: {
+        ...buildAuthHeader(_req)
+      }
+    });
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(error.status || 500).json(error.body || { error: error.message });
+  }
+});
+
+app.get("/api/auth/me", async (req, res) => {
+  try {
+    const data = await requestJson(`${authBaseUrl}/auth/me`, {
+      headers: {
+        ...buildAuthHeader(req)
+      }
+    });
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(error.status || 500).json(error.body || { error: error.message });
+  }
+});
+
+app.get("/api/auth/admin-check", async (req, res) => {
+  try {
+    const data = await requestJson(`${authBaseUrl}/auth/admin-check`, {
+      headers: {
+        ...buildAuthHeader(req)
+      }
+    });
     res.status(200).json(data);
   } catch (error) {
     res.status(error.status || 500).json(error.body || { error: error.message });

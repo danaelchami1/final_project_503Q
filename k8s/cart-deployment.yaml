@@ -30,6 +30,8 @@ spec:
               value: "3002"
             - name: REDIS_URL
               value: "redis://redis:6379"
+            - name: AUTH_SERVICE_URL
+              value: "http://auth:3005"
           resources:
             requests:
               cpu: 100m

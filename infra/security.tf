@@ -56,6 +56,30 @@ resource "aws_ssm_parameter" "auth_customer_client_id" {
   value = aws_cognito_user_pool_client.customers_app.id
 }
 
+resource "aws_ssm_parameter" "auth_admin_pool_id" {
+  count = var.enable_secrets_architecture ? 1 : 0
+
+  name  = "/shopcloud/${var.environment}/auth/cognito/admins_pool_id"
+  type  = "String"
+  value = aws_cognito_user_pool.admins.id
+}
+
+resource "aws_ssm_parameter" "auth_admin_client_id" {
+  count = var.enable_secrets_architecture ? 1 : 0
+
+  name  = "/shopcloud/${var.environment}/auth/cognito/admins_client_id"
+  type  = "String"
+  value = aws_cognito_user_pool_client.admins_app.id
+}
+
+resource "aws_ssm_parameter" "auth_admin_group" {
+  count = var.enable_secrets_architecture ? 1 : 0
+
+  name  = "/shopcloud/${var.environment}/auth/cognito/admin_group"
+  type  = "String"
+  value = aws_cognito_user_group.admins.name
+}
+
 resource "aws_iam_role" "checkout_irsa" {
   count = var.enable_secrets_architecture ? 1 : 0
   name  = "shopcloud-${var.environment}-checkout-irsa"
@@ -111,6 +135,60 @@ resource "aws_iam_role_policy_attachment" "checkout_irsa" {
   count      = var.enable_secrets_architecture ? 1 : 0
   role       = aws_iam_role.checkout_irsa[0].name
   policy_arn = aws_iam_policy.checkout_irsa[0].arn
+}
+
+resource "aws_iam_role" "auth_irsa" {
+  count = var.enable_secrets_architecture ? 1 : 0
+  name  = "shopcloud-${var.environment}-auth-irsa"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = data.aws_iam_openid_connect_provider.eks[0].arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(data.aws_iam_openid_connect_provider.eks[0].url, "https://", "")}:sub" = "system:serviceaccount:default:auth-sa"
+            "${replace(data.aws_iam_openid_connect_provider.eks[0].url, "https://", "")}:aud" = "sts.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "auth_irsa" {
+  count = var.enable_secrets_architecture ? 1 : 0
+  name  = "shopcloud-${var.environment}-auth-irsa-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter"
+        ]
+        Resource = [
+          aws_ssm_parameter.auth_customer_pool_id[0].arn,
+          aws_ssm_parameter.auth_customer_client_id[0].arn,
+          aws_ssm_parameter.auth_admin_pool_id[0].arn,
+          aws_ssm_parameter.auth_admin_client_id[0].arn,
+          aws_ssm_parameter.auth_admin_group[0].arn
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "auth_irsa" {
+  count      = var.enable_secrets_architecture ? 1 : 0
+  role       = aws_iam_role.auth_irsa[0].name
+  policy_arn = aws_iam_policy.auth_irsa[0].arn
 }
 
 resource "aws_iam_role" "invoice_worker_irsa" {

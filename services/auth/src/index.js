@@ -119,6 +119,10 @@ function isCognitoConfigured() {
   return getCognitoConfigs().length > 0;
 }
 
+function isAuthBackendReady() {
+  return isCognitoConfigured() || enableLocalAuth;
+}
+
 function getCognitoConfigs() {
   const configs = [];
 
@@ -245,10 +249,12 @@ function requireAdmin(req, res, next) {
 }
 
 app.get("/health", (_req, res) => {
-  res.status(200).json({
+  const mode = isCognitoConfigured() ? "cognito" : enableLocalAuth ? "local-dev" : "disabled";
+  const ready = isAuthBackendReady();
+  res.status(ready ? 200 : 503).json({
     service: "auth",
-    status: "ok",
-    mode: isCognitoConfigured() ? "cognito" : enableLocalAuth ? "local-dev" : "disabled"
+    status: ready ? "ok" : "degraded",
+    mode
   });
 });
 

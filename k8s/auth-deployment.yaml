@@ -19,6 +19,7 @@ spec:
       labels:
         app: auth
     spec:
+      serviceAccountName: auth-sa
       containers:
         - name: auth
           image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-auth:v1
@@ -40,6 +41,8 @@ spec:
               value: "/shopcloud/dev/auth/cognito/admins_pool_id"
             - name: AUTH_SSM_ADMINS_CLIENT_ID_PARAM
               value: "/shopcloud/dev/auth/cognito/admins_client_id"
+            - name: AUTH_SSM_ADMIN_GROUP_PARAM
+              value: "/shopcloud/dev/auth/cognito/admin_group"
             - name: COGNITO_ADMIN_GROUP
               value: "admins"
             - name: ENABLE_LOCAL_AUTH
