@@ -19,6 +19,7 @@ spec:
       labels:
         app: invoice-worker
     spec:
+      serviceAccountName: invoice-worker-sa
       containers:
         - name: invoice-worker
           image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-invoice-worker:latest

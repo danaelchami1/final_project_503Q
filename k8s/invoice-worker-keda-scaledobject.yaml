@@ -1,0 +1,20 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: invoice-worker-sqs-scaledobject
+spec:
+  scaleTargetRef:
+    name: invoice-worker
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        awsRegion: us-east-1
+        queueLength: "5"
+        queueURL: https://sqs.us-east-1.amazonaws.com/680666325893/shopcloud-dev-invoice-queue
+        identityOwner: operator
+      authenticationRef:
+        name: invoice-worker-sqs-auth

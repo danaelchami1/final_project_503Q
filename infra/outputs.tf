@@ -95,6 +95,11 @@ output "invoice_worker_role_arn" {
   value       = aws_iam_role.invoice_worker_role.arn
 }
 
+output "invoice_worker_irsa_role_arn" {
+  description = "IRSA role ARN assigned to invoice-worker service account"
+  value       = var.enable_secrets_architecture ? aws_iam_role.invoice_worker_irsa[0].arn : null
+}
+
 output "invoice_lambda_function_name" {
   description = "Lambda function name for invoice processing"
   value       = aws_lambda_function.invoice_processor.function_name

@@ -112,3 +112,36 @@ resource "aws_iam_role_policy_attachment" "checkout_irsa" {
   role       = aws_iam_role.checkout_irsa[0].name
   policy_arn = aws_iam_policy.checkout_irsa[0].arn
 }
+
+resource "aws_iam_role" "invoice_worker_irsa" {
+  count = var.enable_secrets_architecture ? 1 : 0
+  name  = "shopcloud-${var.environment}-invoice-worker-irsa"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = data.aws_iam_openid_connect_provider.eks[0].arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(data.aws_iam_openid_connect_provider.eks[0].url, "https://", "")}:sub" = [
+              "system:serviceaccount:default:invoice-worker-sa",
+              "system:serviceaccount:keda:keda-operator"
+            ]
+            "${replace(data.aws_iam_openid_connect_provider.eks[0].url, "https://", "")}:aud" = "sts.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "invoice_worker_irsa" {
+  count      = var.enable_secrets_architecture ? 1 : 0
+  role       = aws_iam_role.invoice_worker_irsa[0].name
+  policy_arn = aws_iam_policy.invoice_worker_policy.arn
+}
