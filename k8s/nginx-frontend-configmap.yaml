@@ -70,7 +70,7 @@ data:
           <nav class="topnav">
             <button class="nav-btn active" data-page="home">Home</button>
             <button class="nav-btn" data-page="catalog">Catalog</button>
-            <button class="nav-btn" data-page="cart">Cart</button>
+            <button class="nav-btn cart-nav-btn" data-page="cart">&#128722; Cart <span id="cartCount" class="cart-count">0</span></button>
             <button class="nav-btn" data-page="checkout">Checkout</button>
             <button class="nav-btn" data-page="admin">Admin</button>
           </nav>
@@ -82,7 +82,12 @@ data:
         <main class="container">
           <section class="page active" id="page-home">
             <h1>Welcome to ShopCloud</h1>
-            <p class="muted">Demo storefront with auth, catalog, cart, checkout, and admin tools.</p>
+            <p class="muted">Shop essentials delivered fast across EU and US.</p>
+            <div class="hero-strip">
+              <div class="hero-card"><h3>Fast Delivery</h3><p>Same-day dispatch for top products.</p></div>
+              <div class="hero-card"><h3>Secure Checkout</h3><p>Protected session and order workflow.</p></div>
+              <div class="hero-card"><h3>Always Available</h3><p>Built with multi-service cloud architecture.</p></div>
+            </div>
             <div class="panel">
               <h2>Sign In</h2>
               <div class="form-row">
@@ -126,11 +131,12 @@ data:
             <h1>Admin</h1>
             <div class="form-row"><button id="adminCheckBtn">Check Admin Access</button></div>
           </section>
-          <section class="panel">
-            <h2>Activity</h2>
+          <details class="panel logs-panel">
+            <summary>Activity Log (optional)</summary>
             <pre id="output">Ready.</pre>
-          </section>
+          </details>
         </main>
+        <button id="floatingCartBtn" class="floating-cart-btn" aria-label="Open cart page">&#128722;</button>
         <script src="/app.js"></script>
       </body>
     </html>
@@ -139,6 +145,7 @@ data:
     const cartOutput = document.getElementById("cartOutput");
     const productsGrid = document.getElementById("productsGrid");
     const sessionBadge = document.getElementById("sessionBadge");
+    const cartCount = document.getElementById("cartCount");
     const session = { accessToken: "", user: null };
     function authHeaders() {
       return session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {};
@@ -168,6 +175,7 @@ data:
       if (session.user && session.user.id) {
         document.getElementById("userId").value = session.user.id;
       }
+      updateCartCount().catch(() => {});
     }
     function switchPage(page) {
       document.querySelectorAll(".page").forEach((element) => {
@@ -203,12 +211,28 @@ data:
               body: JSON.stringify({ productId, quantity: 1 })
             });
             show({ added: productId, cart: result });
+            updateCartCount().catch(() => {});
             switchPage("cart");
           } catch (error) {
             show(error.message);
           }
         });
       });
+    }
+    async function updateCartCount() {
+      if (!session.user || !session.user.id) {
+        cartCount.textContent = "0";
+        return;
+      }
+      try {
+        const data = await request(`/api/cart/${encodeURIComponent(session.user.id)}`);
+        const count = Array.isArray(data.items)
+          ? data.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+          : 0;
+        cartCount.textContent = String(count);
+      } catch {
+        cartCount.textContent = "0";
+      }
     }
     document.querySelectorAll(".nav-btn").forEach((button) => {
       button.addEventListener("click", () => switchPage(button.dataset.page));
@@ -231,6 +255,9 @@ data:
     document.getElementById("logoutBtn").addEventListener("click", () => {
       setSession(null, "");
       show("Logged out.");
+    });
+    document.getElementById("floatingCartBtn").addEventListener("click", () => {
+      switchPage("cart");
     });
     document.getElementById("whoamiBtn").addEventListener("click", async () => {
       try {
@@ -261,6 +288,7 @@ data:
           body: JSON.stringify({ productId, quantity })
         });
         cartOutput.textContent = JSON.stringify(data, null, 2);
+        updateCartCount().catch(() => {});
         show("Item added to cart.");
       } catch (error) {
         show(error.message);
@@ -271,6 +299,7 @@ data:
         const userId = document.getElementById("userId").value;
         const data = await request(`/api/cart/${encodeURIComponent(userId)}`);
         cartOutput.textContent = JSON.stringify(data, null, 2);
+        updateCartCount().catch(() => {});
         show("Cart refreshed.");
       } catch (error) {
         show(error.message);
@@ -281,6 +310,7 @@ data:
         const userId = document.getElementById("userId").value;
         const data = await request(`/api/cart/${encodeURIComponent(userId)}`, { method: "DELETE" });
         cartOutput.textContent = JSON.stringify(data, null, 2);
+        updateCartCount().catch(() => {});
         show("Cart cleared.");
       } catch (error) {
         show(error.message);
@@ -324,15 +354,22 @@ data:
     .danger-btn { background: #d03a3a; }
     .session { display: flex; align-items: center; gap: 8px; }
     .badge { display: inline-block; border-radius: 999px; background: #1f3f72; padding: 6px 10px; font-size: 13px; }
+    .cart-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #ffffff; color: #10203a; font-size: 12px; }
     .container { max-width: 1100px; margin: 24px auto; padding: 0 16px 24px; }
     .page { display: none; }
     .page.active { display: block; }
     .panel { background: #fff; border: 1px solid #dde6f4; border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: 0 6px 20px rgba(16, 32, 58, 0.05); }
+    .hero-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .hero-card { background: linear-gradient(135deg, #ffffff, #eef4ff); border: 1px solid #d7e4fb; border-radius: 14px; padding: 12px; }
+    .hero-card h3 { margin: 0 0 6px; }
+    .hero-card p { margin: 0; color: #5a6f92; }
     .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
     input { flex: 1; min-width: 220px; border: 1px solid #c8d5ea; border-radius: 10px; padding: 10px; font-size: 14px; }
     .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
     .product-card { background: #fff; border: 1px solid #dde6f4; border-radius: 14px; padding: 14px; box-shadow: 0 6px 20px rgba(16, 32, 58, 0.05); }
     .product-card h3 { margin: 0 0 8px; }
     .muted { color: #5a6f92; }
-    pre { background: #0f1a2d; color: #e8efff; border-radius: 10px; padding: 12px; min-height: 120px; overflow: auto; }
+    pre { background: #f6f9ff; color: #17335e; border: 1px solid #d7e4fb; border-radius: 10px; padding: 12px; min-height: 120px; overflow: auto; }
     .small-output { min-height: 90px; }
+    .logs-panel summary { cursor: pointer; font-weight: 700; }
+    .floating-cart-btn { position: fixed; right: 18px; bottom: 18px; width: 56px; height: 56px; border-radius: 50%; background: #26a269; box-shadow: 0 8px 24px rgba(16, 32, 58, 0.25); font-size: 22px; }

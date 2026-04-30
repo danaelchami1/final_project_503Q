@@ -2,6 +2,7 @@ const output = document.getElementById("output");
 const cartOutput = document.getElementById("cartOutput");
 const productsGrid = document.getElementById("productsGrid");
 const sessionBadge = document.getElementById("sessionBadge");
+const cartCount = document.getElementById("cartCount");
 
 const session = {
   accessToken: "",
@@ -44,6 +45,7 @@ function setSession(user, token) {
   if (session.user && session.user.id) {
     document.getElementById("userId").value = session.user.id;
   }
+  updateCartCount().catch(() => {});
 }
 
 function switchPage(page) {
@@ -87,12 +89,29 @@ function renderProducts(items) {
           body: JSON.stringify({ productId, quantity: 1 })
         });
         show({ added: productId, cart: result });
+        updateCartCount().catch(() => {});
         switchPage("cart");
       } catch (error) {
         show(error.message);
       }
     });
   });
+}
+
+async function updateCartCount() {
+  if (!session.user || !session.user.id) {
+    cartCount.textContent = "0";
+    return;
+  }
+  try {
+    const data = await request(`/api/cart/${encodeURIComponent(session.user.id)}`);
+    const count = Array.isArray(data.items)
+      ? data.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+      : 0;
+    cartCount.textContent = String(count);
+  } catch {
+    cartCount.textContent = "0";
+  }
 }
 
 document.querySelectorAll(".nav-btn").forEach((button) => {
@@ -118,6 +137,10 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 document.getElementById("logoutBtn").addEventListener("click", () => {
   setSession(null, "");
   show("Logged out.");
+});
+
+document.getElementById("floatingCartBtn").addEventListener("click", () => {
+  switchPage("cart");
 });
 
 document.getElementById("whoamiBtn").addEventListener("click", async () => {
@@ -151,6 +174,7 @@ document.getElementById("addCartBtn").addEventListener("click", async () => {
       body: JSON.stringify({ productId, quantity })
     });
     cartOutput.textContent = JSON.stringify(data, null, 2);
+    updateCartCount().catch(() => {});
     show("Item added to cart.");
   } catch (error) {
     show(error.message);
@@ -162,6 +186,7 @@ document.getElementById("viewCartBtn").addEventListener("click", async () => {
     const userId = document.getElementById("userId").value;
     const data = await request(`/api/cart/${encodeURIComponent(userId)}`);
     cartOutput.textContent = JSON.stringify(data, null, 2);
+    updateCartCount().catch(() => {});
     show("Cart refreshed.");
   } catch (error) {
     show(error.message);
@@ -173,6 +198,7 @@ document.getElementById("clearCartBtn").addEventListener("click", async () => {
     const userId = document.getElementById("userId").value;
     const data = await request(`/api/cart/${encodeURIComponent(userId)}`, { method: "DELETE" });
     cartOutput.textContent = JSON.stringify(data, null, 2);
+    updateCartCount().catch(() => {});
     show("Cart cleared.");
   } catch (error) {
     show(error.message);

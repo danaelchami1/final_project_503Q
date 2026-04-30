@@ -71,6 +71,20 @@ button {
   font-size: 13px;
 }
 
+.cart-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #10203a;
+  font-size: 12px;
+}
+
 .container {
   max-width: 1100px;
   margin: 24px auto;
@@ -92,6 +106,29 @@ button {
   padding: 16px;
   margin-bottom: 18px;
   box-shadow: 0 6px 20px rgba(16, 32, 58, 0.05);
+}
+
+.hero-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hero-card {
+  background: linear-gradient(135deg, #ffffff, #eef4ff);
+  border: 1px solid #d7e4fb;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.hero-card h3 {
+  margin: 0 0 6px;
+}
+
+.hero-card p {
+  margin: 0;
+  color: #5a6f92;
 }
 
 .form-row {
@@ -133,8 +170,9 @@ input {
 }
 
 pre {
-  background: #0f1a2d;
-  color: #e8efff;
+  background: #f6f9ff;
+  color: #17335e;
+  border: 1px solid #d7e4fb;
   border-radius: 10px;
   padding: 12px;
   min-height: 120px;
@@ -143,4 +181,21 @@ pre {
 
 .small-output {
   min-height: 90px;
+}
+
+.logs-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.floating-cart-btn {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #26a269;
+  box-shadow: 0 8px 24px rgba(16, 32, 58, 0.25);
+  font-size: 22px;
 }

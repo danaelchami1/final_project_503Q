@@ -46,7 +46,7 @@ spec:
             - name: COGNITO_ADMIN_GROUP
               value: "admins"
             - name: ENABLE_LOCAL_AUTH
-              value: "false"
+              value: "true"
           resources:
             requests:
               cpu: 100m

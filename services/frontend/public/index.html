@@ -12,7 +12,9 @@
       <nav class="topnav">
         <button class="nav-btn active" data-page="home">Home</button>
         <button class="nav-btn" data-page="catalog">Catalog</button>
-        <button class="nav-btn" data-page="cart">Cart</button>
+        <button class="nav-btn cart-nav-btn" data-page="cart">
+          &#128722; Cart <span id="cartCount" class="cart-count">0</span>
+        </button>
         <button class="nav-btn" data-page="checkout">Checkout</button>
         <button class="nav-btn" data-page="admin">Admin</button>
       </nav>
@@ -26,8 +28,22 @@
       <section class="page active" id="page-home">
         <h1>Welcome to ShopCloud</h1>
         <p class="muted">
-          Demo storefront with auth, product listing, cart, checkout, and admin tools.
+          Shop essentials delivered fast across EU and US.
         </p>
+        <div class="hero-strip">
+          <div class="hero-card">
+            <h3>Fast Delivery</h3>
+            <p>Same-day dispatch for top products.</p>
+          </div>
+          <div class="hero-card">
+            <h3>Secure Checkout</h3>
+            <p>Protected session and order workflow.</p>
+          </div>
+          <div class="hero-card">
+            <h3>Always Available</h3>
+            <p>Built with multi-service cloud architecture.</p>
+          </div>
+        </div>
         <div class="panel">
           <h2>Sign In</h2>
           <div class="form-row">
@@ -81,11 +97,15 @@
         </div>
       </section>
 
-      <section class="panel">
-        <h2>Activity</h2>
+      <details class="panel logs-panel">
+        <summary>Activity Log (optional)</summary>
         <pre id="output">Ready.</pre>
-      </section>
+      </details>
     </main>
+
+    <button id="floatingCartBtn" class="floating-cart-btn" aria-label="Open cart page">
+      &#128722;
+    </button>
 
     <script src="/app.js"></script>
   </body>
