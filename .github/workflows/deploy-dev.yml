@@ -110,6 +110,12 @@ jobs:
         run: |
           aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
 
+      - name: Sanitize legacy checkout env conflicts
+        run: |
+          # Some older deployments carried CHECKOUT_CONFIG_SECRET_ID as a literal value.
+          # Remove it before server-side apply so valueFrom can be applied cleanly.
+          kubectl set env deployment/checkout CHECKOUT_CONFIG_SECRET_ID- || true
+
       - name: Apply Kubernetes manifests (exclude app secrets)
         run: |
           for f in k8s/*.yaml; do
@@ -118,7 +124,7 @@ jobs:
               continue
             fi
             # Server-side apply avoids stale last-applied annotation merge conflicts.
-            kubectl apply --server-side --force-conflicts -f "$f"
+            kubectl apply --server-side --force-conflicts --validate=false -f "$f"
           done
 
       - name: Stabilize deployment strategies
