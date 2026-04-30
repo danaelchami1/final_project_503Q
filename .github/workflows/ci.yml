@@ -54,9 +54,10 @@ jobs:
 
       - name: Validate Kubernetes manifests
         run: |
+          export KUBECONFIG=/dev/null
           for f in k8s/*.yaml; do
-            # CI runners do not have kubeconfig; disable schema fetch from cluster.
-            kubectl apply --dry-run=client --validate=false -f "$f" >/dev/null
+            # Offline client-side validation only (no cluster discovery).
+            kubectl create --dry-run=client -f "$f" >/dev/null
             echo "Validated $f"
           done
 
