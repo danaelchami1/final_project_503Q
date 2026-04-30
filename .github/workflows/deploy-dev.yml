@@ -127,6 +127,10 @@ jobs:
             kubectl apply --server-side --force-conflicts --validate=false -f "$f"
           done
 
+      - name: Restart nginx to pick up ConfigMap UI updates
+        run: |
+          kubectl rollout restart deployment/nginx || true
+
       - name: Stabilize deployment strategies
         run: |
           # Keep single replicas on constrained nodes to avoid rollout deadlocks.

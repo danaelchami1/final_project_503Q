@@ -159,6 +159,10 @@ jobs:
         run: docker compose up -d --build
 
       - name: Wait for stack boot
+        env:
+          POSTGRES_USER: shopcloud
+          POSTGRES_DB: shopcloud_orders
+          POSTGRES_PASSWORD: ci-postgres-password
         run: |
           services=(3001 3002 3003 3004 3005 3006)
           for port in "${services[@]}"; do
