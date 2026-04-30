@@ -79,7 +79,8 @@ jobs:
               echo "Skipping $f (managed outside CI)"
               continue
             fi
-            kubectl apply -f "$f"
+            # Server-side apply avoids stale last-applied annotation merge conflicts.
+            kubectl apply --server-side --force-conflicts -f "$f"
           done
 
       - name: Stabilize deployment strategies
