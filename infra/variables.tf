@@ -131,6 +131,24 @@ variable "ses_from_email" {
   default     = "noreply@shopcloud-dev.example.com"
 }
 
+variable "invoice_lambda_timeout_seconds" {
+  description = "Lambda timeout in seconds for invoice SQS processing"
+  type        = number
+  default     = 30
+}
+
+variable "invoice_lambda_memory_mb" {
+  description = "Lambda memory size in MB for invoice SQS processing"
+  type        = number
+  default     = 512
+}
+
+variable "invoice_lambda_batch_size" {
+  description = "Number of SQS messages Lambda receives per batch"
+  type        = number
+  default     = 5
+}
+
 variable "enable_rds_multi_az" {
   description = "Enable Multi-AZ deployment for primary RDS instance"
   type        = bool

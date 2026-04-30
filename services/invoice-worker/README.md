@@ -4,9 +4,11 @@ Minimal ShopCloud invoice worker for local development.
 
 ## Behavior
 
-- Receives invoice events
-- Generates local invoice text file in `invoices/`
-- Simulates sending email (logs target email)
+- Receives invoice events over HTTP and SQS
+- Generates a PDF invoice in `invoices/`
+- Uploads invoice PDFs to S3 when `INVOICE_BUCKET_NAME` is configured
+- Sends invoice email via SES (raw email with PDF attachment) when `SES_FROM_EMAIL` is configured
+- Exposes a Lambda-compatible handler in `src/lambda.js` for SQS-triggered processing
 
 ## Endpoints
 
@@ -40,5 +42,15 @@ Minimal ShopCloud invoice worker for local development.
 npm install
 npm start
 ```
+
+## Environment variables
+
+- `AWS_REGION` (default: `us-east-1`)
+- `INVOICE_QUEUE_URL` (optional; enables poller when set)
+- `INVOICE_BUCKET_NAME` (optional; enables S3 upload path)
+- `SES_FROM_EMAIL` (optional; enables SES send path)
+- `INVOICE_S3_UPLOAD_ENABLED` (`true` by default)
+- `INVOICE_SES_SEND_ENABLED` (`true` by default)
+- `INVOICE_SQS_POLL_ENABLED` (`true` by default)
 
 Default port: `3004`

@@ -9,7 +9,10 @@
     "dev": "node --watch src/index.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1039.0",
+    "@aws-sdk/client-ses": "^3.1039.0",
     "@aws-sdk/client-sqs": "^3.935.0",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "pdfkit": "^0.15.1"
   }
 }

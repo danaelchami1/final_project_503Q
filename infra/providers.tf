@@ -6,6 +6,10 @@ terraform {
       source  = "registry.opentofu.org/hashicorp/aws"
       version = "~> 5.0"
     }
+    archive = {
+      source  = "registry.opentofu.org/hashicorp/archive"
+      version = "~> 2.0"
+    }
   }
 }
 

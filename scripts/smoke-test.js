@@ -1,15 +1,37 @@
 const fs = require("fs/promises");
 const path = require("path");
 
-const BASE = "http://127.0.0.1";
+const BASE_CANDIDATES = process.env.SMOKE_BASE_URL
+  ? [process.env.SMOKE_BASE_URL]
+  : ["http://127.0.0.1", "http://localhost"];
+const REQUEST_TIMEOUT_MS = Number(process.env.SMOKE_REQUEST_TIMEOUT_MS || 5000);
+let BASE = BASE_CANDIDATES[0];
 
 async function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
-  const text = await response.text();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response;
+  let text = "";
+
+  try {
+    response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    text = await response.text();
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(`Request timed out after ${REQUEST_TIMEOUT_MS}ms: ${url}`);
+    }
+    throw new Error(`Request failed for ${url}: ${error.message}`);
+  } finally {
+    clearTimeout(timeout);
+  }
+
   let body = {};
   if (text) {
     try {
@@ -37,12 +59,30 @@ async function assertHealthChecks() {
   ];
 
   for (const service of services) {
+    console.log(`Checking health: ${service.name}`);
     const health = await requestJson(`${BASE}:${service.port}/health`);
     if (health.status !== "ok") {
       throw new Error(`${service.name} health is not ok`);
     }
     console.log(`Health ok: ${service.name}`);
   }
+}
+
+async function selectReachableBase() {
+  for (const candidate of BASE_CANDIDATES) {
+    try {
+      await requestJson(`${candidate}:3001/health`);
+      BASE = candidate;
+      console.log(`Using base URL: ${BASE}`);
+      return;
+    } catch (_error) {
+      // Try next candidate.
+    }
+  }
+
+  throw new Error(
+    `Could not reach services on any base URL: ${BASE_CANDIDATES.join(", ")}`
+  );
 }
 
 async function runFlow() {
@@ -95,12 +135,13 @@ async function runFlow() {
     "services",
     "invoice-worker",
     "invoices",
-    `${checkout.orderId}.txt`
+    `${checkout.orderId}.pdf`
   );
-  const invoiceContent = await fs.readFile(invoicePath, "utf8");
+  const invoiceContent = await fs.readFile(invoicePath);
 
-  if (!invoiceContent.includes("ShopCloud Invoice")) {
-    throw new Error("Invoice file does not contain expected header");
+  const pdfSignature = invoiceContent.subarray(0, 4).toString("utf8");
+  if (pdfSignature !== "%PDF") {
+    throw new Error("Invoice file is not a valid PDF");
   }
 
   console.log(`Invoice generated: ${invoicePath}`);
@@ -109,6 +150,7 @@ async function runFlow() {
 
 async function main() {
   console.log("Running ShopCloud smoke test...");
+  await selectReachableBase();
   await assertHealthChecks();
   await runFlow();
   console.log("Smoke test passed.");

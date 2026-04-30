@@ -95,6 +95,21 @@ output "invoice_worker_role_arn" {
   value       = aws_iam_role.invoice_worker_role.arn
 }
 
+output "invoice_lambda_function_name" {
+  description = "Lambda function name for invoice processing"
+  value       = aws_lambda_function.invoice_processor.function_name
+}
+
+output "invoice_lambda_function_arn" {
+  description = "Lambda function ARN for invoice processing"
+  value       = aws_lambda_function.invoice_processor.arn
+}
+
+output "invoice_lambda_event_source_mapping_uuid" {
+  description = "Event source mapping UUID for SQS to invoice Lambda"
+  value       = aws_lambda_event_source_mapping.invoice_queue_to_lambda.uuid
+}
+
 output "public_edge_enabled" {
   description = "Whether public edge resources are enabled"
   value       = local.public_edge_enabled
