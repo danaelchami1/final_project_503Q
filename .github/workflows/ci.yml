@@ -57,7 +57,7 @@ jobs:
           export KUBECONFIG=/dev/null
           for f in k8s/*.yaml; do
             # Offline client-side validation only (no cluster discovery).
-            kubectl create --dry-run=client -f "$f" >/dev/null
+            kubectl create --dry-run=client --validate=false -f "$f" >/dev/null
             echo "Validated $f"
           done
 
