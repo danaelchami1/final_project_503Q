@@ -10,6 +10,7 @@ This repository contains a minimal microservices implementation of ShopCloud for
 - `invoice-worker` (port `3004`)
 - `auth` (port `3005`)
 - `admin` (port `3006`)
+- `frontend` (port `3000`) test UI for app flows
 
 ## Run all services with Docker Compose
 
@@ -46,6 +47,12 @@ The smoke test verifies:
 5. invoice file generation under `services/invoice-worker/invoices/`
 
 ## Quick demo API calls
+
+Open frontend test UI:
+
+```bash
+http://127.0.0.1:3000
+```
 
 Get products:
 

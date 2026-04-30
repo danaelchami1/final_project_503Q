@@ -1,0 +1,14 @@
+{
+  "name": "shopcloud-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal frontend for ShopCloud testing",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

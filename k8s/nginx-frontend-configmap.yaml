@@ -1,0 +1,193 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-frontend
+data:
+  default.conf: |
+    server {
+      listen 80;
+      server_name _;
+
+      root /usr/share/nginx/html;
+      index index.html;
+
+      location / {
+        try_files $uri $uri/ /index.html;
+      }
+
+      location /api/products {
+        proxy_pass http://catalog:3001/products;
+      }
+
+      location /api/cart/ {
+        proxy_pass http://cart:3002/cart/;
+      }
+
+      location /api/checkout {
+        proxy_pass http://checkout:3003/checkout;
+      }
+
+      location /api/login {
+        proxy_pass http://auth:3005/auth/login;
+      }
+
+      location /api/orders {
+        proxy_pass http://checkout:3003/orders;
+      }
+
+      location /health {
+        add_header Content-Type application/json;
+        return 200 '{"service":"nginx-frontend","status":"ok"}';
+      }
+    }
+  index.html: |
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ShopCloud Frontend</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 24px; background: #fafafa; }
+          h1 { margin-bottom: 8px; }
+          .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+          .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+          input, button { margin: 4px 0; padding: 8px; width: 100%; box-sizing: border-box; }
+          button { cursor: pointer; }
+          pre { background: #111; color: #eee; padding: 10px; border-radius: 6px; overflow: auto; min-height: 120px; }
+          .muted { color: #666; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <h1>ShopCloud Test Frontend</h1>
+        <p class="muted">Connected via ELB DNS. You can switch to custom domain later.</p>
+
+        <div class="grid">
+          <section class="card">
+            <h3>1) Login (local auth mode only)</h3>
+            <input id="email" value="customer@example.com" />
+            <input id="password" type="password" value="customer123" />
+            <button id="loginBtn">Login</button>
+          </section>
+
+          <section class="card">
+            <h3>2) List Products</h3>
+            <button id="productsBtn">Fetch Products</button>
+          </section>
+
+          <section class="card">
+            <h3>3) Add to Cart</h3>
+            <input id="userId" value="u1" />
+            <input id="productId" value="p-1001" />
+            <input id="quantity" type="number" value="1" />
+            <button id="addCartBtn">Add Item</button>
+            <button id="viewCartBtn">View Cart</button>
+            <button id="clearCartBtn">Clear Cart</button>
+          </section>
+
+          <section class="card">
+            <h3>4) Checkout</h3>
+            <input id="checkoutUserId" value="u1" />
+            <input id="checkoutEmail" value="customer@example.com" />
+            <button id="checkoutBtn">Submit Checkout</button>
+            <button id="ordersBtn">View Orders</button>
+          </section>
+        </div>
+
+        <h3>Result</h3>
+        <pre id="output">Ready.</pre>
+        <script src="/app.js"></script>
+      </body>
+    </html>
+  app.js: |
+    const output = document.getElementById("output");
+    async function request(path, options = {}) {
+      const response = await fetch(path, options);
+      const text = await response.text();
+      let body = {};
+      try {
+        body = text ? JSON.parse(text) : {};
+      } catch {
+        body = { raw: text };
+      }
+      if (!response.ok) {
+        throw new Error(JSON.stringify(body));
+      }
+      return body;
+    }
+    function show(data) {
+      output.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    }
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      try {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const data = await request("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        show(data);
+      } catch (error) {
+        show(error.message);
+      }
+    });
+    document.getElementById("productsBtn").addEventListener("click", async () => {
+      try {
+        show(await request("/api/products"));
+      } catch (error) {
+        show(error.message);
+      }
+    });
+    document.getElementById("addCartBtn").addEventListener("click", async () => {
+      try {
+        const userId = document.getElementById("userId").value;
+        const productId = document.getElementById("productId").value;
+        const quantity = Number(document.getElementById("quantity").value);
+        const data = await request(`/api/cart/${encodeURIComponent(userId)}/items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId, quantity })
+        });
+        show(data);
+      } catch (error) {
+        show(error.message);
+      }
+    });
+    document.getElementById("viewCartBtn").addEventListener("click", async () => {
+      try {
+        const userId = document.getElementById("userId").value;
+        show(await request(`/api/cart/${encodeURIComponent(userId)}`));
+      } catch (error) {
+        show(error.message);
+      }
+    });
+    document.getElementById("clearCartBtn").addEventListener("click", async () => {
+      try {
+        const userId = document.getElementById("userId").value;
+        show(await request(`/api/cart/${encodeURIComponent(userId)}`, { method: "DELETE" }));
+      } catch (error) {
+        show(error.message);
+      }
+    });
+    document.getElementById("checkoutBtn").addEventListener("click", async () => {
+      try {
+        const userId = document.getElementById("checkoutUserId").value;
+        const email = document.getElementById("checkoutEmail").value;
+        const data = await request("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, email })
+        });
+        show(data);
+      } catch (error) {
+        show(error.message);
+      }
+    });
+    document.getElementById("ordersBtn").addEventListener("click", async () => {
+      try {
+        show(await request("/api/orders"));
+      } catch (error) {
+        show(error.message);
+      }
+    });
