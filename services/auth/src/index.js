@@ -1,18 +1,29 @@
 const crypto = require("crypto");
 const express = require("express");
+const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 const { createRemoteJWKSet, jwtVerify } = require("jose");
 
 const app = express();
 const port = Number(process.env.PORT) || 3005;
 const awsRegion = process.env.AWS_REGION || "us-east-1";
-const cognitoUserPoolId = process.env.COGNITO_USER_POOL_ID || "";
-const cognitoClientId = process.env.COGNITO_CLIENT_ID || "";
-const cognitoCustomersUserPoolId = process.env.COGNITO_CUSTOMERS_USER_POOL_ID || "";
-const cognitoCustomersClientId = process.env.COGNITO_CUSTOMERS_CLIENT_ID || "";
-const cognitoAdminsUserPoolId = process.env.COGNITO_ADMINS_USER_POOL_ID || "";
-const cognitoAdminsClientId = process.env.COGNITO_ADMINS_CLIENT_ID || "";
-const cognitoAdminGroup = process.env.COGNITO_ADMIN_GROUP || "admin";
+let cognitoUserPoolId = process.env.COGNITO_USER_POOL_ID || "";
+let cognitoClientId = process.env.COGNITO_CLIENT_ID || "";
+let cognitoCustomersUserPoolId = process.env.COGNITO_CUSTOMERS_USER_POOL_ID || "";
+let cognitoCustomersClientId = process.env.COGNITO_CUSTOMERS_CLIENT_ID || "";
+let cognitoAdminsUserPoolId = process.env.COGNITO_ADMINS_USER_POOL_ID || "";
+let cognitoAdminsClientId = process.env.COGNITO_ADMINS_CLIENT_ID || "";
+let cognitoAdminGroup = process.env.COGNITO_ADMIN_GROUP || "admin";
 const enableLocalAuth = String(process.env.ENABLE_LOCAL_AUTH || "false") === "true";
+const useAwsSsmAuthConfig = String(process.env.USE_AWS_SSM_AUTH_CONFIG || "false") === "true";
+const authSsmCustomersPoolIdParam =
+  process.env.AUTH_SSM_CUSTOMERS_POOL_ID_PARAM || "/shopcloud/dev/auth/cognito/customers_pool_id";
+const authSsmCustomersClientIdParam =
+  process.env.AUTH_SSM_CUSTOMERS_CLIENT_ID_PARAM || "/shopcloud/dev/auth/cognito/customers_client_id";
+const authSsmAdminsPoolIdParam =
+  process.env.AUTH_SSM_ADMINS_POOL_ID_PARAM || "/shopcloud/dev/auth/cognito/admins_pool_id";
+const authSsmAdminsClientIdParam =
+  process.env.AUTH_SSM_ADMINS_CLIENT_ID_PARAM || "/shopcloud/dev/auth/cognito/admins_client_id";
+const authSsmAdminGroupParam = process.env.AUTH_SSM_ADMIN_GROUP_PARAM || "";
 
 app.use(express.json());
 
@@ -32,6 +43,44 @@ const users = [
   }
 ];
 const activeTokens = new Map();
+let ssmClient = null;
+
+function getSsmClient() {
+  if (!ssmClient) {
+    ssmClient = new SSMClient({ region: awsRegion });
+  }
+  return ssmClient;
+}
+
+async function getSsmParameter(name) {
+  if (!name) {
+    return "";
+  }
+  const response = await getSsmClient().send(
+    new GetParameterCommand({
+      Name: name
+    })
+  );
+  return response.Parameter?.Value || "";
+}
+
+async function loadAuthConfigFromSsm() {
+  if (!useAwsSsmAuthConfig) {
+    return;
+  }
+
+  const customersPoolId = await getSsmParameter(authSsmCustomersPoolIdParam);
+  const customersClientId = await getSsmParameter(authSsmCustomersClientIdParam);
+  const adminsPoolId = await getSsmParameter(authSsmAdminsPoolIdParam);
+  const adminsClientId = await getSsmParameter(authSsmAdminsClientIdParam);
+  const adminGroup = authSsmAdminGroupParam ? await getSsmParameter(authSsmAdminGroupParam) : "";
+
+  cognitoCustomersUserPoolId = customersPoolId || cognitoCustomersUserPoolId;
+  cognitoCustomersClientId = customersClientId || cognitoCustomersClientId;
+  cognitoAdminsUserPoolId = adminsPoolId || cognitoAdminsUserPoolId;
+  cognitoAdminsClientId = adminsClientId || cognitoAdminsClientId;
+  cognitoAdminGroup = adminGroup || cognitoAdminGroup;
+}
 
 function createToken() {
   return crypto.randomBytes(24).toString("hex");
@@ -291,14 +340,21 @@ app.post("/auth/logout", requireAuth, (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Auth service is running on port ${port}`);
-  console.log(`Using AWS_REGION=${awsRegion}`);
-  console.log(`Using COGNITO_USER_POOL_ID=${cognitoUserPoolId || "(not set)"}`);
-  console.log(`Using COGNITO_CLIENT_ID=${cognitoClientId || "(not set)"}`);
-  console.log(`Using COGNITO_CUSTOMERS_USER_POOL_ID=${cognitoCustomersUserPoolId || "(not set)"}`);
-  console.log(`Using COGNITO_CUSTOMERS_CLIENT_ID=${cognitoCustomersClientId || "(not set)"}`);
-  console.log(`Using COGNITO_ADMINS_USER_POOL_ID=${cognitoAdminsUserPoolId || "(not set)"}`);
-  console.log(`Using COGNITO_ADMINS_CLIENT_ID=${cognitoAdminsClientId || "(not set)"}`);
-  console.log(`Using COGNITO_ADMIN_GROUP=${cognitoAdminGroup}`);
-  console.log(`Using ENABLE_LOCAL_AUTH=${enableLocalAuth}`);
+  loadAuthConfigFromSsm()
+    .catch((error) => {
+      console.error(`Auth SSM config load failed, continuing with env config: ${error.message}`);
+    })
+    .finally(() => {
+      console.log(`Auth service is running on port ${port}`);
+      console.log(`Using AWS_REGION=${awsRegion}`);
+      console.log(`Using COGNITO_USER_POOL_ID=${cognitoUserPoolId || "(not set)"}`);
+      console.log(`Using COGNITO_CLIENT_ID=${cognitoClientId || "(not set)"}`);
+      console.log(`Using COGNITO_CUSTOMERS_USER_POOL_ID=${cognitoCustomersUserPoolId || "(not set)"}`);
+      console.log(`Using COGNITO_CUSTOMERS_CLIENT_ID=${cognitoCustomersClientId || "(not set)"}`);
+      console.log(`Using COGNITO_ADMINS_USER_POOL_ID=${cognitoAdminsUserPoolId || "(not set)"}`);
+      console.log(`Using COGNITO_ADMINS_CLIENT_ID=${cognitoAdminsClientId || "(not set)"}`);
+      console.log(`Using COGNITO_ADMIN_GROUP=${cognitoAdminGroup}`);
+      console.log(`Using USE_AWS_SSM_AUTH_CONFIG=${useAwsSsmAuthConfig}`);
+      console.log(`Using ENABLE_LOCAL_AUTH=${enableLocalAuth}`);
+    });
 });

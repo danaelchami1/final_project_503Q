@@ -34,10 +34,7 @@ spec:
             - name: USE_AWS_SECRETS
               value: "true"
             - name: CHECKOUT_CONFIG_SECRET_ID
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: CHECKOUT_CONFIG_SECRET_ID
+              value: "shopcloud/dev/checkout"
             - name: INVOICE_MODE
               value: "sqs"
             - name: CART_SERVICE_URL
@@ -46,26 +43,6 @@ spec:
               value: "http://catalog:3001"
             - name: INVOICE_WORKER_URL
               value: "http://invoice-worker:3004"
-            - name: INVOICE_QUEUE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: INVOICE_QUEUE_URL
-            - name: INVOICE_BUCKET_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: INVOICE_BUCKET_NAME
-            - name: SES_FROM_EMAIL
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: SES_FROM_EMAIL
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: DATABASE_URL
           readinessProbe:
             httpGet:
               path: /health

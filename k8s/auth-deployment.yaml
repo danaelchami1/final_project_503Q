@@ -30,41 +30,18 @@ spec:
               value: "3005"
             - name: AWS_REGION
               value: "us-east-1"
-            - name: COGNITO_USER_POOL_ID
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: COGNITO_USER_POOL_ID
-            - name: COGNITO_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: COGNITO_CLIENT_ID
-            - name: COGNITO_CUSTOMERS_USER_POOL_ID
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: COGNITO_CUSTOMERS_USER_POOL_ID
-            - name: COGNITO_CUSTOMERS_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: COGNITO_CUSTOMERS_CLIENT_ID
-            - name: COGNITO_ADMINS_USER_POOL_ID
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: COGNITO_ADMINS_USER_POOL_ID
-            - name: COGNITO_ADMINS_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: COGNITO_ADMINS_CLIENT_ID
+            - name: USE_AWS_SSM_AUTH_CONFIG
+              value: "true"
+            - name: AUTH_SSM_CUSTOMERS_POOL_ID_PARAM
+              value: "/shopcloud/dev/auth/cognito/customers_pool_id"
+            - name: AUTH_SSM_CUSTOMERS_CLIENT_ID_PARAM
+              value: "/shopcloud/dev/auth/cognito/customers_client_id"
+            - name: AUTH_SSM_ADMINS_POOL_ID_PARAM
+              value: "/shopcloud/dev/auth/cognito/admins_pool_id"
+            - name: AUTH_SSM_ADMINS_CLIENT_ID_PARAM
+              value: "/shopcloud/dev/auth/cognito/admins_client_id"
             - name: COGNITO_ADMIN_GROUP
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: COGNITO_ADMIN_GROUP
+              value: "admins"
             - name: ENABLE_LOCAL_AUTH
               value: "false"
           readinessProbe:
