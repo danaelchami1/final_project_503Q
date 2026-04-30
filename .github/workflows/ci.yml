@@ -47,19 +47,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          version: latest
+          python-version: "3.x"
+
+      - name: Install YAML linter
+        run: pip install yamllint
 
       - name: Validate Kubernetes manifests
         run: |
-          export KUBECONFIG=/dev/null
-          for f in k8s/*.yaml; do
-            # Offline client-side validation only (no cluster discovery).
-            kubectl create --dry-run=client --validate=false -f "$f" >/dev/null
-            echo "Validated $f"
-          done
+          # Fully offline syntax/style validation for Kubernetes manifests.
+          yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" k8s/*.yaml
 
   validate-compose:
     needs: validate-k8s-manifests
