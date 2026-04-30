@@ -143,6 +143,8 @@ Alarm thresholds are configurable in `infra/variables.tf`:
 
 On-call response playbook:
 - `docs/oncall-runbook.md`
+- ALB controller installation runbook:
+  - `docs/alb-controller-runbook.md`
 
 ## Secrets architecture runtime cutover (checkout)
 
