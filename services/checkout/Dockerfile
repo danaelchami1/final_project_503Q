@@ -3,10 +3,11 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-COPY node_modules ./node_modules
+RUN npm ci --omit=dev --no-audit --no-fund
 COPY src ./src
 
 EXPOSE 3003
 
 CMD ["npm", "start"]
+
 

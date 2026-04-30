@@ -65,6 +65,44 @@ jobs:
             docker push ${ECR_REGISTRY}/shopcloud-$s:${IMAGE_TAG}
           done
 
+      - name: Resolve immutable image digests
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          mkdir -p artifacts
+          MANIFEST_PATH="artifacts/promotion-manifest.json"
+          echo "{}" > "${MANIFEST_PATH}"
+
+          for s in catalog cart checkout auth admin invoice-worker; do
+            digest=$(aws ecr describe-images \
+              --repository-name "shopcloud-$s" \
+              --image-ids imageTag="${IMAGE_TAG}" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)
+
+            if [ -z "${digest}" ] || [ "${digest}" = "None" ]; then
+              echo "Failed to resolve digest for service ${s}"
+              exit 1
+            fi
+
+            image_uri="${ECR_REGISTRY}/shopcloud-${s}@${digest}"
+            tmp_file=$(mktemp)
+            jq --arg svc "${s}" --arg uri "${image_uri}" '.[$svc]=$uri' "${MANIFEST_PATH}" > "${tmp_file}"
+            mv "${tmp_file}" "${MANIFEST_PATH}"
+          done
+
+          jq --arg sha "${IMAGE_TAG}" '. + {"sourceSha": $sha}' "${MANIFEST_PATH}" > "${MANIFEST_PATH}.tmp"
+          mv "${MANIFEST_PATH}.tmp" "${MANIFEST_PATH}"
+          cat "${MANIFEST_PATH}"
+
+      - name: Upload promotion manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: promotion-manifest-${{ github.sha }}
+          path: artifacts/promotion-manifest.json
+          if-no-files-found: error
+
       - name: Configure kubeconfig for EKS
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -102,16 +140,14 @@ jobs:
           kubectl patch deployment/invoice-worker --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
 
       - name: Update deployment images
-        env:
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          kubectl set image deployment/catalog catalog=${ECR_REGISTRY}/shopcloud-catalog:${IMAGE_TAG}
-          kubectl set image deployment/cart cart=${ECR_REGISTRY}/shopcloud-cart:${IMAGE_TAG}
-          kubectl set image deployment/checkout checkout=${ECR_REGISTRY}/shopcloud-checkout:${IMAGE_TAG}
-          kubectl set image deployment/auth auth=${ECR_REGISTRY}/shopcloud-auth:${IMAGE_TAG}
-          kubectl set image deployment/admin admin=${ECR_REGISTRY}/shopcloud-admin:${IMAGE_TAG}
-          kubectl set image deployment/invoice-worker invoice-worker=${ECR_REGISTRY}/shopcloud-invoice-worker:${IMAGE_TAG}
+          MANIFEST_PATH="artifacts/promotion-manifest.json"
+          kubectl set image deployment/catalog catalog=$(jq -r '.catalog' "${MANIFEST_PATH}")
+          kubectl set image deployment/cart cart=$(jq -r '.cart' "${MANIFEST_PATH}")
+          kubectl set image deployment/checkout checkout=$(jq -r '.checkout' "${MANIFEST_PATH}")
+          kubectl set image deployment/auth auth=$(jq -r '.auth' "${MANIFEST_PATH}")
+          kubectl set image deployment/admin admin=$(jq -r '.admin' "${MANIFEST_PATH}")
+          kubectl set image deployment/invoice-worker invoice-worker=$(jq -r '.["invoice-worker"]' "${MANIFEST_PATH}")
 
       - name: Wait for rollouts
         run: |

@@ -3,8 +3,8 @@ name: Deploy Prod
 on:
   workflow_dispatch:
     inputs:
-      image_tag:
-        description: "Image tag to deploy to production (commit SHA or release tag)"
+      source_tag:
+        description: "Previously built tag to promote to prod (commit SHA)"
         required: true
         type: string
 
@@ -60,14 +60,31 @@ jobs:
       - name: Deploy image tag to production
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          IMAGE_TAG: ${{ inputs.image_tag }}
+          SOURCE_TAG: ${{ inputs.source_tag }}
         run: |
-          kubectl set image deployment/catalog catalog=${ECR_REGISTRY}/shopcloud-catalog:${IMAGE_TAG}
-          kubectl set image deployment/cart cart=${ECR_REGISTRY}/shopcloud-cart:${IMAGE_TAG}
-          kubectl set image deployment/checkout checkout=${ECR_REGISTRY}/shopcloud-checkout:${IMAGE_TAG}
-          kubectl set image deployment/auth auth=${ECR_REGISTRY}/shopcloud-auth:${IMAGE_TAG}
-          kubectl set image deployment/admin admin=${ECR_REGISTRY}/shopcloud-admin:${IMAGE_TAG}
-          kubectl set image deployment/invoice-worker invoice-worker=${ECR_REGISTRY}/shopcloud-invoice-worker:${IMAGE_TAG}
+          resolve_image_uri() {
+            local service="$1"
+            local digest
+            digest=$(aws ecr describe-images \
+              --repository-name "shopcloud-${service}" \
+              --image-ids imageTag="${SOURCE_TAG}" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)
+
+            if [ -z "${digest}" ] || [ "${digest}" = "None" ]; then
+              echo "Unable to find digest for ${service} with tag ${SOURCE_TAG}"
+              exit 1
+            fi
+
+            echo "${ECR_REGISTRY}/shopcloud-${service}@${digest}"
+          }
+
+          kubectl set image deployment/catalog catalog=$(resolve_image_uri catalog)
+          kubectl set image deployment/cart cart=$(resolve_image_uri cart)
+          kubectl set image deployment/checkout checkout=$(resolve_image_uri checkout)
+          kubectl set image deployment/auth auth=$(resolve_image_uri auth)
+          kubectl set image deployment/admin admin=$(resolve_image_uri admin)
+          kubectl set image deployment/invoice-worker invoice-worker=$(resolve_image_uri invoice-worker)
 
       - name: Verify post-deployment health
         run: |
@@ -77,3 +94,13 @@ jobs:
           kubectl rollout status deployment/auth --timeout=300s
           kubectl rollout status deployment/admin --timeout=300s
           kubectl rollout status deployment/invoice-worker --timeout=300s
+
+      - name: Roll back deployments on failure
+        if: failure()
+        run: |
+          kubectl rollout undo deployment/catalog || true
+          kubectl rollout undo deployment/cart || true
+          kubectl rollout undo deployment/checkout || true
+          kubectl rollout undo deployment/auth || true
+          kubectl rollout undo deployment/admin || true
+          kubectl rollout undo deployment/invoice-worker || true
