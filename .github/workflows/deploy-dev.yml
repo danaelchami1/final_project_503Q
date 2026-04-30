@@ -72,6 +72,16 @@ jobs:
         run: |
           aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
 
+      - name: Apply Kubernetes manifests (exclude app secrets)
+        run: |
+          for f in k8s/*.yaml; do
+            if [ "$(basename "$f")" = "app-secrets.yaml" ]; then
+              echo "Skipping $f (managed outside CI)"
+              continue
+            fi
+            kubectl apply -f "$f"
+          done
+
       - name: Stabilize deployment strategies
         run: |
           # Keep single replicas on constrained nodes to avoid rollout deadlocks.
