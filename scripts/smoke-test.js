@@ -108,6 +108,8 @@ async function selectReachableBase() {
 }
 
 async function runFlow() {
+  let accessToken = "";
+
   try {
     const login = await requestJson(`${BASE}:3005/auth/login`, {
       method: "POST",
@@ -119,6 +121,7 @@ async function runFlow() {
     });
 
     if (login.accessToken) {
+      accessToken = login.accessToken;
       console.log("Login ok");
     } else {
       console.log("Login skipped (no access token returned)");
@@ -131,11 +134,25 @@ async function runFlow() {
     }
   }
 
-  const userId = "u1";
+  if (!accessToken) {
+    throw new Error("Smoke test requires a bearer token from /auth/login (local auth mode)");
+  }
+
+  const me = await requestJson(`${BASE}:3005/auth/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+
+  const userId = me?.user?.id;
+  if (!userId || typeof userId !== "string") {
+    throw new Error("Could not resolve user id from /auth/me");
+  }
 
   await requestJson(`${BASE}:3002/cart/${userId}/items`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`
+    },
     body: JSON.stringify({
       productId: "p-1001",
       quantity: 2
@@ -145,11 +162,11 @@ async function runFlow() {
 
   const checkout = await requestJson(`${BASE}:3003/checkout`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId,
-      email: "customer@example.com"
-    })
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({})
   });
 
   if (!checkout.orderId) {
