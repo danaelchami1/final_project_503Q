@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const https = require("https");
 const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
+const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const { Pool } = require("pg");
 
 const app = express();
@@ -10,10 +11,12 @@ const port = Number(process.env.PORT) || 3003;
 const cartBaseUrl = process.env.CART_SERVICE_URL || "http://127.0.0.1:3002";
 const catalogBaseUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
 const invoiceWorkerUrl = process.env.INVOICE_WORKER_URL || "http://127.0.0.1:3004";
-const invoiceQueueUrl = process.env.INVOICE_QUEUE_URL || "";
-const invoiceMode = process.env.INVOICE_MODE || (invoiceQueueUrl ? "sqs" : "http");
 const awsRegion = process.env.AWS_REGION || "us-east-1";
-const databaseUrl =
+const checkoutConfigSecretId = process.env.CHECKOUT_CONFIG_SECRET_ID || "";
+const useAwsSecrets = String(process.env.USE_AWS_SECRETS || "false") === "true";
+let invoiceQueueUrl = process.env.INVOICE_QUEUE_URL || "";
+let invoiceMode = process.env.INVOICE_MODE || (invoiceQueueUrl ? "sqs" : "http");
+let databaseUrl =
   process.env.DATABASE_URL ||
   "postgres://shopcloud:shopcloud@127.0.0.1:5432/shopcloud_orders";
 
@@ -23,6 +26,37 @@ const orders = [];
 let dbPool = null;
 let dbReady = false;
 let sqsClient = null;
+let secretsManagerClient = null;
+
+function getSecretsManagerClient() {
+  if (!secretsManagerClient) {
+    secretsManagerClient = new SecretsManagerClient({ region: awsRegion });
+  }
+  return secretsManagerClient;
+}
+
+async function loadAwsRuntimeConfig() {
+  if (!useAwsSecrets || !checkoutConfigSecretId) {
+    return;
+  }
+
+  const response = await getSecretsManagerClient().send(
+    new GetSecretValueCommand({
+      SecretId: checkoutConfigSecretId
+    })
+  );
+
+  if (!response.SecretString) {
+    throw new Error("checkout secret has empty SecretString");
+  }
+
+  const parsed = JSON.parse(response.SecretString);
+  databaseUrl = parsed.DATABASE_URL || databaseUrl;
+  invoiceQueueUrl = parsed.INVOICE_QUEUE_URL || invoiceQueueUrl;
+  if (!process.env.INVOICE_MODE) {
+    invoiceMode = invoiceQueueUrl ? "sqs" : "http";
+  }
+}
 
 async function connectDatabase() {
   try {
@@ -317,14 +351,22 @@ app.post("/checkout", async (req, res) => {
 });
 
 app.listen(port, () => {
-  connectDatabase().finally(() => {
-    console.log(`Checkout service is running on port ${port}`);
-    console.log(`Using CART_SERVICE_URL=${cartBaseUrl}`);
-    console.log(`Using CATALOG_SERVICE_URL=${catalogBaseUrl}`);
-    console.log(`Using INVOICE_WORKER_URL=${invoiceWorkerUrl}`);
-    console.log(`Using INVOICE_MODE=${invoiceMode}`);
-    console.log(`Using INVOICE_QUEUE_URL=${invoiceQueueUrl || "(not set)"}`);
-    console.log(`Using AWS_REGION=${awsRegion}`);
-    console.log(`Using DATABASE_URL=${databaseUrl}`);
-  });
+  loadAwsRuntimeConfig()
+    .then(() => connectDatabase())
+    .catch((error) => {
+      console.error(`AWS secret load failed, continuing with env config: ${error.message}`);
+      return connectDatabase();
+    })
+    .finally(() => {
+      console.log(`Checkout service is running on port ${port}`);
+      console.log(`Using CART_SERVICE_URL=${cartBaseUrl}`);
+      console.log(`Using CATALOG_SERVICE_URL=${catalogBaseUrl}`);
+      console.log(`Using INVOICE_WORKER_URL=${invoiceWorkerUrl}`);
+      console.log(`Using INVOICE_MODE=${invoiceMode}`);
+      console.log(`Using INVOICE_QUEUE_URL=${invoiceQueueUrl || "(not set)"}`);
+      console.log(`Using AWS_REGION=${awsRegion}`);
+      console.log(`Using USE_AWS_SECRETS=${useAwsSecrets}`);
+      console.log(`Using CHECKOUT_CONFIG_SECRET_ID=${checkoutConfigSecretId || "(not set)"}`);
+      console.log(`Using DATABASE_URL=${databaseUrl}`);
+    });
 });

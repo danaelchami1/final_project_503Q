@@ -31,6 +31,25 @@ jobs:
         with:
           version: latest
 
+      - name: Verify environment boundary (AWS account and registry)
+        env:
+          EXPECTED_AWS_ACCOUNT_ID: ${{ secrets.EXPECTED_AWS_ACCOUNT_ID }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        run: |
+          caller_account_id=$(aws sts get-caller-identity --query Account --output text)
+          echo "Caller account: ${caller_account_id}"
+
+          if [ -n "${EXPECTED_AWS_ACCOUNT_ID}" ] && [ "${caller_account_id}" != "${EXPECTED_AWS_ACCOUNT_ID}" ]; then
+            echo "AWS account mismatch: expected ${EXPECTED_AWS_ACCOUNT_ID}, got ${caller_account_id}"
+            exit 1
+          fi
+
+          ecr_account_id=$(echo "${ECR_REGISTRY}" | cut -d. -f1)
+          if [ "${caller_account_id}" != "${ecr_account_id}" ]; then
+            echo "ECR registry account mismatch: registry=${ecr_account_id}, caller=${caller_account_id}"
+            exit 1
+          fi
+
       - name: Configure kubeconfig for EKS
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}

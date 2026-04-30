@@ -164,3 +164,33 @@ output "checkout_secret_arn" {
   description = "Secrets Manager ARN for checkout configuration secret"
   value       = var.enable_secrets_architecture ? aws_secretsmanager_secret.checkout[0].arn : null
 }
+
+output "invoice_queue_depth_alarm_name" {
+  description = "CloudWatch alarm for high invoice queue depth"
+  value       = aws_cloudwatch_metric_alarm.invoice_queue_depth_high.alarm_name
+}
+
+output "invoice_dlq_depth_alarm_name" {
+  description = "CloudWatch alarm for invoice dead-letter queue depth"
+  value       = aws_cloudwatch_metric_alarm.invoice_dlq_depth_high.alarm_name
+}
+
+output "invoice_queue_oldest_message_age_alarm_name" {
+  description = "CloudWatch alarm for invoice queue oldest message age"
+  value       = aws_cloudwatch_metric_alarm.invoice_queue_oldest_message_age_high.alarm_name
+}
+
+output "orders_db_cpu_alarm_name" {
+  description = "CloudWatch alarm for checkout RDS CPU utilization"
+  value       = aws_cloudwatch_metric_alarm.orders_db_cpu_high.alarm_name
+}
+
+output "ops_dashboard_name" {
+  description = "CloudWatch operations dashboard name"
+  value       = aws_cloudwatch_dashboard.shopcloud_ops.dashboard_name
+}
+
+output "alarm_notification_topic_arn_effective" {
+  description = "Effective SNS topic ARN used by CloudWatch alarms"
+  value       = local.effective_alarm_topic_arn != "" ? local.effective_alarm_topic_arn : null
+}

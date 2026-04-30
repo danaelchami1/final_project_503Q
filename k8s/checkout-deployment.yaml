@@ -31,6 +31,13 @@ spec:
               value: "3003"
             - name: AWS_REGION
               value: "us-east-1"
+            - name: USE_AWS_SECRETS
+              value: "true"
+            - name: CHECKOUT_CONFIG_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: CHECKOUT_CONFIG_SECRET_ID
             - name: INVOICE_MODE
               value: "sqs"
             - name: CART_SERVICE_URL

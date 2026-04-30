@@ -16,3 +16,6 @@ enable_private_admin_path = false
 admin_vpn_server_certificate_arn = ""
 admin_vpn_client_cidr = "172.20.0.0/22"
 enable_secrets_architecture = false
+alarm_notification_topic_arn = ""
+enable_alarm_notifications = false
+alarm_notification_emails = []

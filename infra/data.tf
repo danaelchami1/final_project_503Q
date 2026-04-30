@@ -38,6 +38,11 @@ resource "aws_db_subnet_group" "shopcloud" {
     aws_subnet.private_2.id
   ]
 
+  lifecycle {
+    # Existing subnet groups are often attached to live DBs and cannot be changed safely in-place.
+    ignore_changes = [subnet_ids]
+  }
+
   tags = merge(local.common_tags, {
     Name = "shopcloud-${var.environment}-db-subnets"
   })
@@ -63,6 +68,15 @@ resource "aws_db_instance" "orders" {
   db_subnet_group_name    = aws_db_subnet_group.shopcloud.name
   vpc_security_group_ids  = [aws_security_group.data_plane.id]
 
+  lifecycle {
+    # Imported/live DB may already be pinned to a different VPC/subnet group.
+    # Avoid disruptive cross-VPC modify attempts during drift reconciliation.
+    ignore_changes = [
+      db_subnet_group_name,
+      vpc_security_group_ids
+    ]
+  }
+
   tags = merge(local.common_tags, {
     Name = "shopcloud-${var.environment}-orders-db"
   })
@@ -87,6 +101,11 @@ resource "aws_elasticache_subnet_group" "shopcloud" {
     aws_subnet.private_1.id,
     aws_subnet.private_2.id
   ]
+
+  lifecycle {
+    # Existing subnet groups can be locked while cache clusters are attached.
+    ignore_changes = [subnet_ids]
+  }
 }
 
 resource "aws_elasticache_cluster" "cart" {
@@ -100,6 +119,15 @@ resource "aws_elasticache_cluster" "cart" {
   subnet_group_name    = aws_elasticache_subnet_group.shopcloud.name
   security_group_ids   = [aws_security_group.data_plane.id]
   parameter_group_name = "default.redis7"
+
+  lifecycle {
+    # Imported/live cache clusters may be pinned to existing VPC SG/subnet groups.
+    # Avoid cross-VPC modify attempts during drift reconciliation.
+    ignore_changes = [
+      subnet_group_name,
+      security_group_ids
+    ]
+  }
 
   tags = merge(local.common_tags, {
     Name = "shopcloud-${var.environment}-cart-redis"

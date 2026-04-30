@@ -28,6 +28,11 @@ resource "aws_eks_cluster" "shopcloud" {
     aws_iam_role_policy_attachment.eks_policy
   ]
 
+  lifecycle {
+    # Keep existing cluster network wiring stable; avoid forced subnet reconfiguration drift updates.
+    ignore_changes = [vpc_config]
+  }
+
   tags = local.common_tags
 }
 
@@ -54,10 +59,7 @@ resource "aws_eks_node_group" "nodes" {
   cluster_name    = aws_eks_cluster.shopcloud.name
   node_group_name = var.node_group_name
   node_role_arn   = data.aws_iam_role.node_role_existing.arn
-  subnet_ids = [
-    aws_subnet.private_1.id,
-    aws_subnet.private_2.id
-  ]
+  subnet_ids      = aws_eks_cluster.shopcloud.vpc_config[0].subnet_ids
 
   scaling_config {
     desired_size = var.node_desired_size

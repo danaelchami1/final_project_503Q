@@ -134,7 +134,7 @@ variable "ses_from_email" {
 variable "enable_rds_multi_az" {
   description = "Enable Multi-AZ deployment for primary RDS instance"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_rds_cross_region_replica" {
@@ -152,7 +152,7 @@ variable "dr_region" {
 variable "db_backup_retention_period" {
   description = "Number of days to retain automated RDS backups"
   type        = number
-  default     = 7
+  default     = 1
 }
 
 variable "db_backup_window" {
@@ -231,4 +231,46 @@ variable "enable_secrets_architecture" {
   description = "Enable KMS + Secrets Manager + SSM + IRSA resources"
   type        = bool
   default     = false
+}
+
+variable "invoice_queue_depth_alarm_threshold" {
+  description = "Queue depth threshold for invoice queue lag alarm"
+  type        = number
+  default     = 50
+}
+
+variable "invoice_dlq_depth_alarm_threshold" {
+  description = "DLQ depth threshold for invoice processing failure alarm"
+  type        = number
+  default     = 1
+}
+
+variable "invoice_oldest_message_age_alarm_threshold_seconds" {
+  description = "Oldest message age threshold in seconds for invoice queue staleness alarm"
+  type        = number
+  default     = 300
+}
+
+variable "orders_db_cpu_alarm_threshold" {
+  description = "RDS CPU threshold percent for checkout database alarm"
+  type        = number
+  default     = 80
+}
+
+variable "alarm_notification_topic_arn" {
+  description = "Optional SNS topic ARN for CloudWatch alarm notifications"
+  type        = string
+  default     = ""
+}
+
+variable "enable_alarm_notifications" {
+  description = "Create and use an SNS topic for CloudWatch alarm notifications"
+  type        = bool
+  default     = false
+}
+
+variable "alarm_notification_emails" {
+  description = "Email recipients subscribed to alarm notification SNS topic"
+  type        = list(string)
+  default     = []
 }
