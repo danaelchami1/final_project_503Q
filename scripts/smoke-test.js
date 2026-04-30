@@ -5,6 +5,8 @@ const BASE_CANDIDATES = process.env.SMOKE_BASE_URL
   ? [process.env.SMOKE_BASE_URL]
   : ["http://127.0.0.1", "http://localhost"];
 const REQUEST_TIMEOUT_MS = Number(process.env.SMOKE_REQUEST_TIMEOUT_MS || 5000);
+const HEALTH_RETRIES = Number(process.env.SMOKE_HEALTH_RETRIES || 20);
+const HEALTH_RETRY_DELAY_MS = Number(process.env.SMOKE_HEALTH_RETRY_DELAY_MS || 2000);
 let BASE = BASE_CANDIDATES[0];
 
 async function wait(ms) {
@@ -60,9 +62,29 @@ async function assertHealthChecks() {
 
   for (const service of services) {
     console.log(`Checking health: ${service.name}`);
-    const health = await requestJson(`${BASE}:${service.port}/health`);
-    if (health.status !== "ok") {
-      throw new Error(`${service.name} health is not ok`);
+    let health = null;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= HEALTH_RETRIES; attempt += 1) {
+      try {
+        health = await requestJson(`${BASE}:${service.port}/health`);
+        if (health.status === "ok") {
+          break;
+        }
+        lastError = new Error(`${service.name} health is not ok`);
+      } catch (error) {
+        lastError = error;
+      }
+
+      if (attempt < HEALTH_RETRIES) {
+        await wait(HEALTH_RETRY_DELAY_MS);
+      }
+    }
+
+    if (!health || health.status !== "ok") {
+      throw new Error(
+        `${service.name} health check failed after ${HEALTH_RETRIES} attempts: ${lastError?.message || "unknown error"}`
+      );
     }
     console.log(`Health ok: ${service.name}`);
   }
