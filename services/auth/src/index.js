@@ -5,7 +5,9 @@ const {
   CognitoIdentityProviderClient,
   InitiateAuthCommand,
   RespondToAuthChallengeCommand,
-  SignUpCommand
+  SignUpCommand,
+  AdminConfirmSignUpCommand,
+  AdminUpdateUserAttributesCommand
 } = require("@aws-sdk/client-cognito-identity-provider");
 const { createRemoteJWKSet, jwtVerify } = require("jose");
 
@@ -435,7 +437,7 @@ app.post("/auth/cognito-admin/respond-mfa", async (req, res) => {
 });
 
 // Local fallback endpoints
-app.post("/auth/register", (req, res) => {
+app.post("/auth/register", async (req, res) => {
   const { email, password, role } = req.body || {};
   if (!email || typeof email !== "string") {
     return res.status(400).json({
@@ -450,42 +452,93 @@ app.post("/auth/register", (req, res) => {
 
   if (isCognitoConfigured()) {
     const clientId = cognitoCustomersClientId;
+    const poolId = cognitoCustomersUserPoolId;
     if (!clientId) {
       return res.status(503).json({
         error: "Customers Cognito app client is not configured"
       });
     }
 
-    getCognitoIdpClient()
-      .send(
+    const normalizedEmail = email.trim();
+
+    try {
+      const signUpOut = await getCognitoIdpClient().send(
         new SignUpCommand({
           ClientId: clientId,
-          Username: email.trim(),
+          Username: normalizedEmail,
           Password: password,
           UserAttributes: [
-            { Name: "email", Value: email.trim() }
+            { Name: "email", Value: normalizedEmail }
           ]
         })
-      )
-      .then((out) => {
-        return res.status(201).json({
-          status: "registered",
-          userSub: out.UserSub || null,
-          userConfirmed: Boolean(out.UserConfirmed),
-          message: out.UserConfirmed
-            ? "Account created successfully."
-            : "Account created. Check your email for verification code if required."
-        });
-      })
-      .catch((error) => {
-        const message = error.message || String(error);
-        const isDuplicate = String(error.name || "").includes("UsernameExists");
-        return res.status(isDuplicate ? 409 : 400).json({
-          error: isDuplicate ? "User already exists" : "Register failed",
-          message
-        });
+      );
+
+      // Standard UX: allow immediate login after signup.
+      if (!signUpOut.UserConfirmed && poolId) {
+        const adminUsername = signUpOut.UserSub || normalizedEmail;
+        try {
+          await getCognitoIdpClient().send(
+            new AdminConfirmSignUpCommand({
+              UserPoolId: poolId,
+              Username: adminUsername
+            })
+          );
+          await getCognitoIdpClient().send(
+            new AdminUpdateUserAttributesCommand({
+              UserPoolId: poolId,
+              Username: adminUsername,
+              UserAttributes: [{ Name: "email_verified", Value: "true" }]
+            })
+          );
+        } catch (confirmError) {
+          return res.status(400).json({
+            error: "Register failed",
+            message: confirmError.message || String(confirmError)
+          });
+        }
+      }
+
+      try {
+        const authOut = await getCognitoIdpClient().send(
+          new InitiateAuthCommand({
+            ClientId: clientId,
+            AuthFlow: "USER_PASSWORD_AUTH",
+            AuthParameters: {
+              USERNAME: normalizedEmail,
+              PASSWORD: password
+            }
+          })
+        );
+
+        if (authOut.AuthenticationResult?.AccessToken) {
+          return res.status(201).json({
+            status: "registered",
+            userSub: signUpOut.UserSub || null,
+            userConfirmed: true,
+            accessToken: authOut.AuthenticationResult.AccessToken,
+            idToken: authOut.AuthenticationResult.IdToken,
+            tokenType: authOut.AuthenticationResult.TokenType || "Bearer",
+            expiresIn: authOut.AuthenticationResult.ExpiresIn
+          });
+        }
+      } catch {
+        // If auto-login fails unexpectedly, still return successful registration.
+      }
+
+      return res.status(201).json({
+        status: "registered",
+        userSub: signUpOut.UserSub || null,
+        userConfirmed: true,
+        message: "Account created successfully."
       });
-    return;
+    } catch (error) {
+      const message = error.message || String(error);
+      const isDuplicate = String(error.name || "").includes("UsernameExists");
+      return res.status(isDuplicate ? 409 : 400).json({
+        error: isDuplicate ? "User already exists" : "Register failed",
+        message
+      });
+    }
   }
 
   if (!enableLocalAuth) {

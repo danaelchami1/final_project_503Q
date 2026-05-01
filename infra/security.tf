@@ -182,13 +182,25 @@ resource "aws_iam_policy" "auth_irsa" {
         ]
       },
       {
-        Sid    = "AdminsPoolPasswordMfaLogin"
+        Sid    = "CognitoAuthFlows"
         Effect = "Allow"
         Action = [
           "cognito-idp:InitiateAuth",
           "cognito-idp:RespondToAuthChallenge"
         ]
-        Resource = aws_cognito_user_pool.admins.arn
+        Resource = [
+          aws_cognito_user_pool.customers.arn,
+          aws_cognito_user_pool.admins.arn
+        ]
+      },
+      {
+        Sid    = "CustomerSignupAutoConfirm"
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:AdminConfirmSignUp",
+          "cognito-idp:AdminUpdateUserAttributes"
+        ]
+        Resource = aws_cognito_user_pool.customers.arn
       }
     ]
   })
