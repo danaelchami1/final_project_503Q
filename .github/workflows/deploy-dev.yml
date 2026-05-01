@@ -192,6 +192,11 @@ jobs:
           kubectl patch deployment/admin --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
           kubectl patch deployment/invoice-worker --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
 
+          # Prevent "exceeded progress deadline" on slower/busy clusters.
+          for svc in catalog cart checkout auth admin invoice-worker; do
+            kubectl patch deployment/${svc} --type=merge -p '{"spec":{"progressDeadlineSeconds":1800}}'
+          done
+
       - name: Update deployment images
         run: |
           MANIFEST_PATH="artifacts/promotion-manifest.json"
@@ -205,12 +210,25 @@ jobs:
       - name: Wait for rollouts
         run: |
           # Give EKS enough time on busy clusters.
-          kubectl rollout status deployment/catalog --timeout=900s
-          kubectl rollout status deployment/cart --timeout=900s
-          kubectl rollout status deployment/checkout --timeout=900s
-          kubectl rollout status deployment/auth --timeout=900s
-          kubectl rollout status deployment/admin --timeout=900s
-          kubectl rollout status deployment/invoice-worker --timeout=900s
+          wait_rollout() {
+            local svc="$1"
+            if ! kubectl rollout status deployment/${svc} --timeout=1200s; then
+              echo "Rollout failed for ${svc}. Capturing diagnostics..."
+              kubectl get deployment/${svc} -o wide || true
+              kubectl describe deployment/${svc} || true
+              kubectl get rs -l app=${svc} -o wide || true
+              kubectl get pods -l app=${svc} -o wide || true
+              kubectl describe pods -l app=${svc} || true
+              return 1
+            fi
+          }
+
+          wait_rollout catalog
+          wait_rollout cart
+          wait_rollout checkout
+          wait_rollout auth
+          wait_rollout admin
+          wait_rollout invoice-worker
 
       - name: Enforce HA replica readiness for core services
         run: |

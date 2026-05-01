@@ -108,15 +108,33 @@ jobs:
           kubectl scale deployment/admin --replicas=2
           kubectl scale deployment/invoice-worker --replicas=1
 
+          # Prevent "exceeded progress deadline" on slower/busy clusters.
+          for svc in catalog cart checkout auth admin invoice-worker; do
+            kubectl patch deployment/${svc} --type=merge -p '{"spec":{"progressDeadlineSeconds":1800}}'
+          done
+
       - name: Verify post-deployment health
         run: |
-          kubectl rollout status deployment/nginx --timeout=900s
-          kubectl rollout status deployment/catalog --timeout=900s
-          kubectl rollout status deployment/cart --timeout=900s
-          kubectl rollout status deployment/checkout --timeout=900s
-          kubectl rollout status deployment/auth --timeout=900s
-          kubectl rollout status deployment/admin --timeout=900s
-          kubectl rollout status deployment/invoice-worker --timeout=900s
+          wait_rollout() {
+            local svc="$1"
+            if ! kubectl rollout status deployment/${svc} --timeout=1200s; then
+              echo "Rollout failed for ${svc}. Capturing diagnostics..."
+              kubectl get deployment/${svc} -o wide || true
+              kubectl describe deployment/${svc} || true
+              kubectl get rs -l app=${svc} -o wide || true
+              kubectl get pods -l app=${svc} -o wide || true
+              kubectl describe pods -l app=${svc} || true
+              return 1
+            fi
+          }
+
+          wait_rollout nginx
+          wait_rollout catalog
+          wait_rollout cart
+          wait_rollout checkout
+          wait_rollout auth
+          wait_rollout admin
+          wait_rollout invoice-worker
 
       - name: Enforce HA replica readiness for core services
         run: |

@@ -251,7 +251,7 @@ select {
 
 .cart-row {
   display: grid;
-  grid-template-columns: 1fr 120px 120px;
+  grid-template-columns: minmax(140px, 1fr) 120px 92px 120px;
   gap: 10px;
   padding: 12px 14px;
   border-bottom: 1px solid #ede2ff;
@@ -265,6 +265,31 @@ select {
 .cart-row.header {
   font-weight: 700;
   background: #f7f1ff;
+}
+
+.cart-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cart-qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cart-qty-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.cart-qty-value {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
 }
 
 .toast {
@@ -323,7 +348,7 @@ select {
   position: fixed;
   top: 0;
   right: 0;
-  width: min(420px, 95vw);
+  width: min(560px, 96vw);
   height: 100vh;
   z-index: 40;
   background: #ffffff;
@@ -349,10 +374,11 @@ select {
 
 .checkout-summary-row {
   display: grid;
-  grid-template-columns: 1fr 70px;
+  grid-template-columns: minmax(160px, 1fr) 64px 92px 92px;
   gap: 8px;
   padding: 10px 12px;
   border-bottom: 1px solid #ecdeff;
+  align-items: center;
 }
 
 .checkout-summary-head {
@@ -364,6 +390,7 @@ select {
   padding: 10px 12px;
   font-weight: 700;
   background: #f8f4ff;
+  text-align: right;
 }
 
 .auth-panel {
@@ -388,5 +415,13 @@ select {
 @media (max-width: 880px) {
   .catalog-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .cart-row {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-summary-row {
+    grid-template-columns: 1fr 64px 92px 92px;
   }
 }

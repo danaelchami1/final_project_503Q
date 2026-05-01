@@ -164,7 +164,6 @@ function renderProducts(items) {
         });
         showToast("Added to cart");
         await updateCartCount();
-        switchPage("cart");
       } catch (error) {
         showToast(error.message || "Could not add to cart", "error");
       }
@@ -246,20 +245,93 @@ function renderCart(data) {
   }
 
   const rows = [
-    `<div class="cart-row header"><div>Product</div><div>Qty</div><div></div></div>`
+    `<div class="cart-row header"><div>Item</div><div>Qty</div><div>Price</div><div>Actions</div></div>`
   ];
 
+  const byId = new Map((allProducts || []).map((product) => [String(product.id), product]));
+
   for (const item of items) {
+    const product = byId.get(String(item.productId));
+    const displayName = product?.name || item.productId;
+    const unitPrice = Number(product?.price || 0);
     rows.push(
       `<div class="cart-row">
-        <div>${escapeHtml(item.productId)}</div>
-        <div>${escapeHtml(String(item.quantity))}</div>
-        <div></div>
+        <div>${escapeHtml(displayName)}</div>
+        <div class="cart-qty-stepper">
+          <button class="ghost-btn cart-qty-btn" type="button" data-cart-dec="${escapeHtml(item.productId)}">-</button>
+          <span class="cart-qty-value" data-cart-qty-value="${escapeHtml(item.productId)}">${escapeHtml(String(item.quantity))}</span>
+          <button class="ghost-btn cart-qty-btn" type="button" data-cart-inc="${escapeHtml(item.productId)}">+</button>
+        </div>
+        <div>${formatMoney(unitPrice)}</div>
+        <div class="cart-actions">
+          <button class="danger-btn" type="button" data-cart-remove="${escapeHtml(item.productId)}">Remove</button>
+        </div>
       </div>`
     );
   }
 
   cartList.innerHTML = rows.join("");
+  cartList.querySelectorAll("[data-cart-inc]").forEach((button) => {
+    button.addEventListener("click", () => changeCartItemQuantity(button.dataset.cartInc, 1));
+  });
+  cartList.querySelectorAll("[data-cart-dec]").forEach((button) => {
+    button.addEventListener("click", () => changeCartItemQuantity(button.dataset.cartDec, -1));
+  });
+  cartList.querySelectorAll("[data-cart-remove]").forEach((button) => {
+    button.addEventListener("click", () => removeCartItem(button.dataset.cartRemove));
+  });
+}
+
+async function removeCartItem(productId) {
+  if (!requireSignedIn()) {
+    return;
+  }
+  try {
+    await request(`/api/cart/${encodeURIComponent(session.user.id)}/items/${encodeURIComponent(productId)}`, {
+      method: "DELETE"
+    });
+    showToast("Item removed");
+    await updateCartCount();
+    await refreshCartView();
+  } catch (error) {
+    showToast(error.message || "Could not remove item", "error");
+  }
+}
+
+async function setCartItemQuantity(productId, quantity) {
+  if (!requireSignedIn()) {
+    return;
+  }
+  if (!Number.isInteger(quantity) || quantity < 0) {
+    showToast("Quantity must be a non-negative integer", "error");
+    return;
+  }
+  try {
+    await request(`/api/cart/${encodeURIComponent(session.user.id)}/items/${encodeURIComponent(productId)}`, {
+      method: "DELETE"
+    });
+    if (quantity > 0) {
+      await request(`/api/cart/${encodeURIComponent(session.user.id)}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, quantity })
+      });
+      showToast("Quantity updated");
+    } else {
+      showToast("Item removed");
+    }
+    await updateCartCount();
+    await refreshCartView();
+  } catch (error) {
+    showToast(error.message || "Could not update quantity", "error");
+  }
+}
+
+async function changeCartItemQuantity(productId, delta) {
+  const valueEl = document.querySelector(`[data-cart-qty-value="${String(productId).replace(/"/g, '\\"')}"]`);
+  const current = Number(valueEl?.textContent || 0);
+  const next = current + Number(delta || 0);
+  await setCartItemQuantity(productId, next < 0 ? 0 : next);
 }
 
 async function updateCartCount() {
@@ -283,9 +355,27 @@ async function refreshCartView() {
     renderCart({ items: [] });
     return { items: [] };
   }
+  await ensureProductsLoaded();
   const data = await request(`/api/cart/${encodeURIComponent(session.user.id)}`);
   renderCart(data);
   return data;
+}
+
+async function ensureProductsLoaded() {
+  if (Array.isArray(allProducts) && allProducts.length > 0) {
+    return allProducts;
+  }
+  try {
+    const products = await request("/api/products");
+    allProducts = Array.isArray(products) ? products : [];
+  } catch {
+    allProducts = [];
+  }
+  return allProducts;
+}
+
+function formatMoney(value) {
+  return `$${Number(value || 0).toFixed(2)}`;
 }
 
 function renderCheckoutSummary(data) {
@@ -295,14 +385,29 @@ function renderCheckoutSummary(data) {
     return;
   }
 
-  const totalItems = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const byId = new Map((allProducts || []).map((product) => [String(product.id), product]));
+  const detailedItems = items.map((item) => {
+    const quantity = Number(item.quantity || 0);
+    const product = byId.get(String(item.productId));
+    const name = product?.name || item.productId;
+    const unitPrice = Number(product?.price || 0);
+    const lineTotal = unitPrice * quantity;
+    return {
+      name,
+      quantity,
+      unitPrice,
+      lineTotal
+    };
+  });
+
+  const grandTotal = detailedItems.reduce((sum, item) => sum + item.lineTotal, 0);
   checkoutSummary.innerHTML = [
-    "<div class='checkout-summary-row checkout-summary-head'><span>Item</span><span>Qty</span></div>",
-    ...items.map(
+    "<div class='checkout-summary-row checkout-summary-head'><span>Item</span><span>Qty</span><span>Price</span><span>Total</span></div>",
+    ...detailedItems.map(
       (item) =>
-        `<div class='checkout-summary-row'><span>${escapeHtml(item.productId)}</span><span>${escapeHtml(String(item.quantity || 0))}</span></div>`
+        `<div class='checkout-summary-row'><span>${escapeHtml(item.name)}</span><span>${escapeHtml(String(item.quantity))}</span><span>${formatMoney(item.unitPrice)}</span><span>${formatMoney(item.lineTotal)}</span></div>`
     ),
-    `<div class='checkout-summary-total'>Total units: ${totalItems}</div>`
+    `<div class='checkout-summary-total'>Grand total: ${formatMoney(grandTotal)}</div>`
   ].join("");
 }
 
@@ -462,10 +567,11 @@ document.getElementById("goCheckoutBtn").addEventListener("click", () => {
   if (!requireSignedIn()) {
     return;
   }
-  refreshCartView()
+  Promise.all([refreshCartView(), ensureProductsLoaded()])
     .then((data) => {
+      const cartData = Array.isArray(data) ? data[0] : data;
       updateCheckoutEmailHint();
-      renderCheckoutSummary(data);
+      renderCheckoutSummary(cartData);
       openCheckoutDrawer();
     })
     .catch((error) => showToast(error.message || "Could not load checkout", "error"));
