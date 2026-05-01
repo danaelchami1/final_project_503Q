@@ -85,9 +85,15 @@
 
       <section class="page" id="page-catalog">
         <h1>Catalog</h1>
-        <div class="form-row">
-          <button id="productsBtn">Load Products</button>
+        <div class="catalog-toolbar">
+          <input id="catalogSearch" type="text" placeholder="Search products by name, id, or category..." />
+          <select id="catalogCategory">
+            <option value="">All categories</option>
+          </select>
+          <button id="clearCatalogFiltersBtn" class="ghost-btn" type="button">Clear filters</button>
         </div>
+        <div id="catalogCategoryChips" class="catalog-chips"></div>
+        <p id="catalogSummary" class="muted small"></p>
         <div id="productsGrid" class="products-grid"></div>
       </section>
 

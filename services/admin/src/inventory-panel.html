@@ -50,6 +50,15 @@
         margin: 0;
         opacity: 0.96;
       }
+      .quick-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 14px;
+      }
+      .quick-nav button {
+        background: #1e40af;
+      }
       .status {
         margin-top: 12px;
         font-size: 0.9rem;
@@ -278,7 +287,13 @@
         </div>
       </section>
 
-      <section class="panel">
+      <div class="quick-nav">
+        <button type="button" data-jump="signinPanel">Sign-in</button>
+        <button type="button" data-jump="inventoryPanel">Inventory</button>
+        <button type="button" data-jump="ordersPanel">Orders</button>
+      </div>
+
+      <section class="panel" id="signinPanel">
         <h2>Admin Sign-in</h2>
         <p class="muted">No manual token paste needed. Sign in once and the session token is used automatically.</p>
         <div class="grid two">
@@ -298,7 +313,7 @@
         <div id="status" class="status"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="inventoryPanel">
         <div class="row" style="justify-content: space-between">
           <h2 style="margin: 0">Inventory</h2>
           <button type="button" id="loadBtn">Refresh inventory</button>
@@ -334,7 +349,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="ordersPanel">
         <div class="row" style="justify-content: space-between">
           <h2 style="margin: 0">Orders (read-only)</h2>
           <button type="button" id="loadOrdersBtn" class="secondary">Refresh orders</button>
@@ -725,6 +740,16 @@
 
       document.getElementById("ordersFilter").addEventListener("input", () => {
         renderOrdersTable(uiState.orders);
+      });
+
+      document.querySelectorAll("[data-jump]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const targetId = button.getAttribute("data-jump");
+          const section = document.getElementById(targetId);
+          if (section) {
+            section.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
       });
 
       document.addEventListener("keydown", (event) => {

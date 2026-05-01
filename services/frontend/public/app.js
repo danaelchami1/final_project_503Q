@@ -8,6 +8,10 @@ const checkoutDrawerBackdrop = document.getElementById("checkoutDrawerBackdrop")
 const checkoutSummary = document.getElementById("checkoutSummary");
 const thankYouOrderId = document.getElementById("thankYouOrderId");
 const thankYouEmail = document.getElementById("thankYouEmail");
+const catalogSearch = document.getElementById("catalogSearch");
+const catalogCategory = document.getElementById("catalogCategory");
+const catalogCategoryChips = document.getElementById("catalogCategoryChips");
+const catalogSummary = document.getElementById("catalogSummary");
 
 const session = {
   accessToken: "",
@@ -15,6 +19,7 @@ const session = {
 };
 
 let toastTimer = null;
+let allProducts = [];
 
 function authHeaders() {
   return session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {};
@@ -108,6 +113,10 @@ function switchPage(page) {
   if (page === "cart" && session.accessToken) {
     refreshCartView().catch((error) => showToast(error.message || "Could not load cart", "error"));
   }
+
+  if (page === "catalog") {
+    loadCatalogData().catch((error) => showToast(error.message || "Could not load products", "error"));
+  }
 }
 
 function closeCheckoutDrawer() {
@@ -161,6 +170,68 @@ function renderProducts(items) {
       }
     });
   });
+}
+
+function renderCatalogFilters(items) {
+  const categories = Array.from(
+    new Set(
+      (Array.isArray(items) ? items : [])
+        .map((item) => String(item.category || "").trim().toLowerCase())
+        .filter(Boolean)
+    )
+  ).sort();
+
+  catalogCategory.innerHTML = '<option value="">All categories</option>';
+  for (const category of categories) {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    catalogCategory.appendChild(option);
+  }
+
+  const selected = String(catalogCategory.value || "").toLowerCase();
+  const chips = ['<button type="button" class="catalog-chip active" data-category="">All</button>'];
+  for (const category of categories) {
+    const activeClass = selected === category ? " active" : "";
+    chips.push(
+      `<button type="button" class="catalog-chip${activeClass}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>`
+    );
+  }
+  catalogCategoryChips.innerHTML = chips.join("");
+
+  catalogCategoryChips.querySelectorAll(".catalog-chip").forEach((button) => {
+    button.addEventListener("click", () => {
+      catalogCategory.value = button.dataset.category || "";
+      applyCatalogFilters();
+    });
+  });
+}
+
+function applyCatalogFilters() {
+  const query = String(catalogSearch.value || "").trim().toLowerCase();
+  const category = String(catalogCategory.value || "").trim().toLowerCase();
+
+  const filtered = allProducts.filter((item) => {
+    const haystack = [item.id, item.name, item.category, item.description].join(" ").toLowerCase();
+    const matchQuery = !query || haystack.includes(query);
+    const matchCategory = !category || String(item.category || "").toLowerCase() === category;
+    return matchQuery && matchCategory;
+  });
+
+  renderProducts(filtered);
+  catalogSummary.textContent = `Showing ${filtered.length} of ${allProducts.length} products`;
+
+  catalogCategoryChips.querySelectorAll(".catalog-chip").forEach((button) => {
+    const isActive = String(button.dataset.category || "") === String(catalogCategory.value || "");
+    button.classList.toggle("active", isActive);
+  });
+}
+
+async function loadCatalogData() {
+  const products = await request("/api/products");
+  allProducts = Array.isArray(products) ? products : [];
+  renderCatalogFilters(allProducts);
+  applyCatalogFilters();
 }
 
 function renderCart(data) {
@@ -276,9 +347,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     switchPage("catalog");
     showToast("Signed in");
     await syncSessionFromAuthMe(bearerToken);
-
-    const products = await request("/api/products");
-    renderProducts(products);
+    await loadCatalogData();
   } catch (error) {
     showToast(error.message || "Login failed", "error");
   }
@@ -306,8 +375,7 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
     switchPage("catalog");
     showToast("Account created - you are signed in");
     await syncSessionFromAuthMe(bearerToken);
-    const products = await request("/api/products");
-    renderProducts(products);
+    await loadCatalogData();
   } catch (error) {
     const msg = error.message || "Sign up failed";
     if (String(msg).includes("503") || msg.toLowerCase().includes("cognito")) {
@@ -335,13 +403,12 @@ document.getElementById("floatingCartBtn").addEventListener("click", () => {
   closeCheckoutDrawer();
 });
 
-document.getElementById("productsBtn").addEventListener("click", async () => {
-  try {
-    const products = await request("/api/products");
-    renderProducts(products);
-  } catch (error) {
-    showToast(error.message || "Could not load products", "error");
-  }
+catalogSearch.addEventListener("input", applyCatalogFilters);
+catalogCategory.addEventListener("change", applyCatalogFilters);
+document.getElementById("clearCatalogFiltersBtn").addEventListener("click", () => {
+  catalogSearch.value = "";
+  catalogCategory.value = "";
+  applyCatalogFilters();
 });
 
 document.getElementById("addCartBtn").addEventListener("click", async () => {
@@ -434,8 +501,7 @@ document.getElementById("checkoutBtn").addEventListener("click", async () => {
 document.getElementById("continueShoppingBtn").addEventListener("click", async () => {
   switchPage("catalog");
   try {
-    const products = await request("/api/products");
-    renderProducts(products);
+    await loadCatalogData();
   } catch (error) {
     showToast(error.message || "Could not load products", "error");
   }

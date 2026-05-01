@@ -48,6 +48,11 @@ resource "aws_db_subnet_group" "shopcloud" {
   })
 }
 
+data "aws_kms_key" "dr_rds" {
+  provider = aws.dr
+  key_id   = "alias/aws/rds"
+}
+
 resource "aws_db_instance" "orders" {
   identifier              = "shopcloud-${var.environment}-orders"
   engine                  = "postgres"
@@ -92,11 +97,14 @@ resource "aws_db_instance" "orders_replica_dr" {
   publicly_accessible        = false
   auto_minor_version_upgrade = true
   storage_encrypted          = true
-  skip_final_snapshot        = true
+  # Cross-region replicas of encrypted sources must specify a destination-region KMS key ARN.
+  kms_key_id          = data.aws_kms_key.dr_rds.arn
+  skip_final_snapshot = true
 }
 
 resource "aws_elasticache_subnet_group" "shopcloud" {
-  name = "shopcloud-${var.environment}-cache-subnets"
+  # Use a versioned name to avoid collisions with legacy subnet groups tied to old VPCs.
+  name = "shopcloud-${var.environment}-cache-subnets-v2"
   subnet_ids = [
     aws_subnet.private_1.id,
     aws_subnet.private_2.id
