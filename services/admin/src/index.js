@@ -1,10 +1,28 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const http = require("http");
 const https = require("https");
 
 const app = express();
 const port = Number(process.env.PORT) || 3006;
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3005";
+
+let inventoryPanelHtml = "";
+try {
+  inventoryPanelHtml = fs.readFileSync(path.join(__dirname, "inventory-panel.html"), "utf8");
+} catch (error) {
+  console.error(`inventory_panel_read_failed: ${error.message}`);
+  inventoryPanelHtml = "<!doctype html><title>Admin</title><p>Internal panel file missing.</p>";
+}
+
+/** Internal warehouse UI — only reachable on private networks (internal ALB / VPN / port-forward), never public. */
+app.get("/", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Cache-Control", "no-store");
+  res.status(200).send(inventoryPanelHtml);
+});
 
 app.use(express.json());
 

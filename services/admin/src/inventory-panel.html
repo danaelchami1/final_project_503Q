@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShopCloud — Internal inventory</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        color: #1a1a2e;
+        background: #f4f6fb;
+      }
+      body {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 1.35rem;
+      }
+      .banner {
+        background: #1a1a2e;
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 12px 0 4px;
+      }
+      input[type="text"],
+      input[type="password"],
+      input[type="number"] {
+        width: 100%;
+        max-width: 520px;
+        padding: 8px 10px;
+        border: 1px solid #ccd;
+        border-radius: 6px;
+      }
+      button {
+        margin: 6px 6px 6px 0;
+        padding: 8px 14px;
+        border-radius: 6px;
+        border: none;
+        background: #3d5a80;
+        color: #fff;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #6c757d;
+      }
+      button.danger {
+        background: #a82039;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid #e8e8ee;
+      }
+      th {
+        background: #eef2f9;
+      }
+      .muted {
+        color: #555;
+        font-size: 0.88rem;
+      }
+      .grid {
+        display: grid;
+        gap: 8px;
+        max-width: 520px;
+      }
+      #status {
+        margin-top: 12px;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner">
+      <strong>Internal use only.</strong> Reach this UI only from your private network (VPN, bastion, or internal
+      load balancer). Do not expose port 3006 on a public load balancer.
+    </div>
+    <h1>Warehouse &amp; catalog — inventory</h1>
+    <p class="muted">
+      Sign in as an <strong>admin</strong> in the <strong>admins</strong> Cognito pool (or local admin user), then paste
+      the bearer access token below. Returns are handled by adjusting stock (PATCH) or removing a line item (DELETE).
+    </p>
+
+    <label for="token">Admin access token (Bearer)</label>
+    <input id="token" type="password" autocomplete="off" placeholder="eyJra…" />
+
+    <div style="margin-top: 12px">
+      <button type="button" id="loadBtn">Refresh inventory</button>
+    </div>
+
+    <h2 style="margin-top: 28px; font-size: 1.1rem">Add product</h2>
+    <div class="grid">
+      <input id="newId" type="text" placeholder="id e.g. p-2001" />
+      <input id="newName" type="text" placeholder="name" />
+      <input id="newCategory" type="text" placeholder="category" />
+      <input id="newPrice" type="number" step="0.01" min="0" placeholder="price" />
+      <input id="newStock" type="number" min="0" step="1" placeholder="stock (integer)" />
+      <button type="button" id="addBtn">Create product</button>
+    </div>
+
+    <div id="status" class="muted"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <script>
+      function authHeader() {
+        let t = document.getElementById("token").value.trim();
+        if (!t) return {};
+        if (!/^Bearer\s/i.test(t)) t = "Bearer " + t;
+        return { Authorization: t };
+      }
+
+      function setStatus(msg, ok) {
+        const el = document.getElementById("status");
+        el.textContent = msg;
+        el.style.color = ok ? "#0a6" : "#a20";
+      }
+
+      async function api(path, options) {
+        const res = await fetch(path, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeader(),
+            ...(options && options.headers ? options.headers : {})
+          }
+        });
+        const text = await res.text();
+        let body = {};
+        try {
+          body = text ? JSON.parse(text) : {};
+        } catch {
+          body = { raw: text };
+        }
+        if (!res.ok) throw new Error(body.error || body.message || res.statusText || String(res.status));
+        return body;
+      }
+
+      async function loadInventory() {
+        setStatus("Loading…", true);
+        const data = await api("/admin/products", { method: "GET" });
+        const tbody = document.getElementById("rows");
+        tbody.innerHTML = "";
+        for (const p of data) {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" +
+            escapeHtml(p.id) +
+            "</td><td>" +
+            escapeHtml(p.name) +
+            "</td><td>" +
+            escapeHtml(p.category) +
+            "</td><td>" +
+            Number(p.price).toFixed(2) +
+            '</td><td><input type="number" min="0" step="1" data-stock-id="' +
+            escapeHtml(p.id) +
+            '" value="' +
+            Number(p.stock) +
+            '" style="width:5rem"/></td><td><button type="button" class="secondary" data-save="' +
+            escapeHtml(p.id) +
+            '">Save stock</button> <button type="button" class="danger" data-del="' +
+            escapeHtml(p.id) +
+            '">Delete</button></td>';
+          tbody.appendChild(tr);
+        }
+        setStatus("Loaded " + data.length + " products.", true);
+        tbody.querySelectorAll("[data-save]").forEach((btn) => {
+          btn.addEventListener("click", () => saveStock(btn.getAttribute("data-save")));
+        });
+        tbody.querySelectorAll("[data-del]").forEach((btn) => {
+          btn.addEventListener("click", () => delProduct(btn.getAttribute("data-del")));
+        });
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      async function saveStock(id) {
+        const input = document.querySelector('input[data-stock-id="' + id.replace(/"/g, "") + '"]');
+        const stock = Number(input && input.value);
+        if (!Number.isInteger(stock) || stock < 0) {
+          setStatus("Stock must be a non-negative integer.", false);
+          return;
+        }
+        try {
+          await api("/admin/products/" + encodeURIComponent(id) + "/stock", {
+            method: "PATCH",
+            body: JSON.stringify({ stock })
+          });
+          setStatus("Updated stock for " + id, true);
+          await loadInventory();
+        } catch (e) {
+          setStatus(e.message || "Update failed", false);
+        }
+      }
+
+      async function delProduct(id) {
+        if (!confirm("Delete product " + id + "?")) return;
+        try {
+          await api("/admin/products/" + encodeURIComponent(id), { method: "DELETE" });
+          setStatus("Deleted " + id, true);
+          await loadInventory();
+        } catch (e) {
+          setStatus(e.message || "Delete failed", false);
+        }
+      }
+
+      document.getElementById("loadBtn").addEventListener("click", () => {
+        loadInventory().catch((e) => setStatus(e.message || "Load failed", false));
+      });
+
+      document.getElementById("addBtn").addEventListener("click", async () => {
+        const id = document.getElementById("newId").value.trim();
+        const name = document.getElementById("newName").value.trim();
+        const category = document.getElementById("newCategory").value.trim();
+        const price = Number(document.getElementById("newPrice").value);
+        const stock = Number(document.getElementById("newStock").value);
+        if (!id || !name || !category || !Number.isFinite(price) || !Number.isInteger(stock)) {
+          setStatus("Fill id, name, category, numeric price, integer stock.", false);
+          return;
+        }
+        try {
+          await api("/admin/products", {
+            method: "POST",
+            body: JSON.stringify({ id, name, category, price, stock })
+          });
+          setStatus("Created " + id, true);
+          await loadInventory();
+        } catch (e) {
+          setStatus(e.message || "Create failed", false);
+        }
+      });
+    </script>
+  </body>
+</html>

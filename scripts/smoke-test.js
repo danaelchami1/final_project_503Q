@@ -13,6 +13,30 @@ async function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const INVOICE_PDF_WAIT_MS = Number(process.env.SMOKE_INVOICE_WAIT_MS || 15000);
+const INVOICE_PDF_POLL_MS = Number(process.env.SMOKE_INVOICE_POLL_MS || 400);
+
+async function waitForInvoicePdf(invoicePath) {
+  const deadline = Date.now() + INVOICE_PDF_WAIT_MS;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      const invoiceContent = await fs.readFile(invoicePath);
+      const pdfSignature = invoiceContent.subarray(0, 4).toString("utf8");
+      if (pdfSignature === "%PDF") {
+        return invoiceContent;
+      }
+      lastError = new Error("Invoice file is not a valid PDF");
+    } catch (error) {
+      lastError = error;
+    }
+    await wait(INVOICE_PDF_POLL_MS);
+  }
+  throw new Error(
+    `Invoice PDF did not appear within ${INVOICE_PDF_WAIT_MS}ms (${invoicePath}): ${lastError?.message || "unknown"}`
+  );
+}
+
 async function requestJson(url, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -174,9 +198,6 @@ async function runFlow() {
   }
   console.log(`Checkout ok: ${checkout.orderId}`);
 
-  // Give invoice worker a short time slice to write the file.
-  await wait(1000);
-
   const invoicePath = path.join(
     __dirname,
     "..",
@@ -185,7 +206,7 @@ async function runFlow() {
     "invoices",
     `${checkout.orderId}.pdf`
   );
-  const invoiceContent = await fs.readFile(invoicePath);
+  const invoiceContent = await waitForInvoicePdf(invoicePath);
 
   const pdfSignature = invoiceContent.subarray(0, 4).toString("utf8");
   if (pdfSignature !== "%PDF") {

@@ -169,6 +169,11 @@ input {
   color: #a14b6f;
 }
 
+.muted.small {
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
 .cart-list {
   margin-top: 12px;
   border: 1px solid #ffd0e8;

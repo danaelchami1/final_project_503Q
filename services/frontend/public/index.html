@@ -17,7 +17,6 @@
           &#128722; Cart <span id="cartCount" class="cart-count">0</span>
         </button>
         <button class="nav-btn" data-page="checkout">Checkout</button>
-        <button class="nav-btn" data-page="admin">Admin</button>
       </nav>
       <div class="session">
         <span id="sessionBadge" class="badge">Guest</span>
@@ -45,16 +44,21 @@
             <p>Built with multi-service cloud architecture.</p>
           </div>
         </div>
-        <div class="panel">
-          <h2>Sign In</h2>
-          <div class="form-row">
-            <input id="email" placeholder="Email" value="customer@example.com" />
-            <input id="password" placeholder="Password" type="password" value="change-me-customer" />
-          </div>
-          <div class="form-row">
-            <button id="loginBtn">Login</button>
-          </div>
-        </div>
+            <div class="panel">
+              <h2>Sign In</h2>
+              <p class="muted small">
+                New here? Create an account with your email, then you can check out. Invoices are sent to that same
+                email.
+              </p>
+              <div class="form-row">
+                <input id="email" placeholder="Email" value="customer@example.com" />
+                <input id="password" placeholder="Password" type="password" value="change-me-customer" />
+              </div>
+              <div class="form-row">
+                <button id="loginBtn">Login</button>
+                <button id="registerBtn" type="button" class="ghost-btn">Create account</button>
+              </div>
+            </div>
       </section>
 
       <section class="page" id="page-catalog">
@@ -76,25 +80,24 @@
           <button id="addCartBtn">Add Item</button>
           <button id="viewCartBtn" class="ghost-btn">Refresh Cart</button>
           <button id="clearCartBtn" class="danger-btn">Clear Cart</button>
+          <button id="goCheckoutBtn" type="button">Go to checkout</button>
         </div>
         <div id="cartList" class="cart-list"></div>
       </section>
 
       <section class="page" id="page-checkout">
         <h1>Checkout</h1>
-        <p class="muted">Checkout now uses your authenticated identity.</p>
+        <p class="muted">Checkout uses your signed-in account. Your order is confirmed immediately.</p>
+        <p class="muted" id="checkoutInvoiceHint">
+          Your invoice PDF will be emailed to <strong id="checkoutEmailHint">—</strong> shortly (this does not delay
+          checkout).
+        </p>
         <div class="form-row">
           <button id="checkoutBtn">Place Order</button>
           <button id="ordersBtn" class="ghost-btn">View Orders (Admin)</button>
         </div>
       </section>
 
-      <section class="page" id="page-admin">
-        <h1>Admin</h1>
-        <div class="form-row">
-          <button id="adminCheckBtn">Check Admin Access</button>
-        </div>
-      </section>
     </main>
 
     <button id="floatingCartBtn" class="floating-cart-btn" aria-label="Open cart page">

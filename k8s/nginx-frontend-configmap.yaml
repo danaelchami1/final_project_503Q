@@ -35,6 +35,11 @@ data:
         proxy_pass http://auth:3005/auth/login;
       }
 
+      location /api/register {
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass http://auth:3005/auth/register;
+      }
+
       location /api/orders {
         proxy_set_header Authorization $http_authorization;
         proxy_pass http://checkout:3003/orders;
@@ -75,14 +80,13 @@ data:
               &#128722; Cart <span id="cartCount" class="cart-count">0</span>
             </button>
             <button class="nav-btn" data-page="checkout">Checkout</button>
-            <button class="nav-btn" data-page="admin">Admin</button>
           </nav>
           <div class="session">
             <span id="sessionBadge" class="badge">Guest</span>
             <button id="logoutBtn" class="ghost-btn">Logout</button>
           </div>
         </header>
-    
+
         <main class="container">
           <section class="page active" id="page-home">
             <h1>Welcome to ShopCloud</h1>
@@ -105,16 +109,21 @@ data:
             </div>
             <div class="panel">
               <h2>Sign In</h2>
+              <p class="muted small">
+                New here? Create an account with your email, then you can check out. Invoices are sent to that same
+                email.
+              </p>
               <div class="form-row">
                 <input id="email" placeholder="Email" value="customer@example.com" />
                 <input id="password" placeholder="Password" type="password" value="change-me-customer" />
               </div>
               <div class="form-row">
                 <button id="loginBtn">Login</button>
+                <button id="registerBtn" type="button" class="ghost-btn">Create account</button>
               </div>
             </div>
           </section>
-    
+
           <section class="page" id="page-catalog">
             <h1>Catalog</h1>
             <div class="form-row">
@@ -122,7 +131,7 @@ data:
             </div>
             <div id="productsGrid" class="products-grid"></div>
           </section>
-    
+
           <section class="page" id="page-cart">
             <h1>Your Cart</h1>
             <p class="muted">Please sign in first, then add items from the catalog.</p>
@@ -134,31 +143,30 @@ data:
               <button id="addCartBtn">Add Item</button>
               <button id="viewCartBtn" class="ghost-btn">Refresh Cart</button>
               <button id="clearCartBtn" class="danger-btn">Clear Cart</button>
+              <button id="goCheckoutBtn" type="button">Go to checkout</button>
             </div>
             <div id="cartList" class="cart-list"></div>
           </section>
-    
+
           <section class="page" id="page-checkout">
             <h1>Checkout</h1>
-            <p class="muted">Checkout now uses your authenticated identity.</p>
+            <p class="muted">Checkout uses your signed-in account. Your order is confirmed immediately.</p>
+            <p class="muted" id="checkoutInvoiceHint">
+              Your invoice PDF will be emailed to <strong id="checkoutEmailHint">—</strong> shortly (this does not delay
+              checkout).
+            </p>
             <div class="form-row">
               <button id="checkoutBtn">Place Order</button>
               <button id="ordersBtn" class="ghost-btn">View Orders (Admin)</button>
             </div>
           </section>
-    
-          <section class="page" id="page-admin">
-            <h1>Admin</h1>
-            <div class="form-row">
-              <button id="adminCheckBtn">Check Admin Access</button>
-            </div>
-          </section>
+
         </main>
-    
+
         <button id="floatingCartBtn" class="floating-cart-btn" aria-label="Open cart page">
           &#128722;
         </button>
-    
+
         <script src="/app.js"></script>
       </body>
     </html>
@@ -168,18 +176,18 @@ data:
     const productsGrid = document.getElementById("productsGrid");
     const sessionBadge = document.getElementById("sessionBadge");
     const cartCount = document.getElementById("cartCount");
-    
+
     const session = {
       accessToken: "",
       user: null
     };
-    
+
     let toastTimer = null;
-    
+
     function authHeaders() {
       return session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {};
     }
-    
+
     function escapeHtml(value) {
       return String(value)
         .replaceAll("&", "&amp;")
@@ -188,31 +196,31 @@ data:
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
     }
-    
+
     function showToast(message, variant = "info") {
       if (!toast) {
         return;
       }
-    
+
       toast.textContent = message;
       toast.classList.remove("toast-error");
       if (variant === "error") {
         toast.classList.add("toast-error");
       }
-    
+
       toast.classList.add("show");
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => {
         toast.classList.remove("show");
       }, 3500);
     }
-    
+
     async function request(path, options = {}) {
       const headers = {
         ...(options.headers || {}),
         ...authHeaders()
       };
-    
+
       const response = await fetch(path, { ...options, headers });
       const text = await response.text();
       let body = {};
@@ -228,7 +236,7 @@ data:
       }
       return body;
     }
-    
+
     function requireSignedIn() {
       if (!session.accessToken || !session.user) {
         showToast("Please sign in on Home first.", "error");
@@ -237,15 +245,25 @@ data:
       }
       return true;
     }
-    
+
     function setSession(user, token) {
       session.user = user || null;
       session.accessToken = token || "";
       const label = session.user ? `${session.user.email} (${session.user.role})` : "Guest";
       sessionBadge.textContent = label;
+      updateCheckoutEmailHint();
       updateCartCount().catch(() => {});
     }
-    
+
+    function updateCheckoutEmailHint() {
+      const hint = document.getElementById("checkoutEmailHint");
+      if (!hint) {
+        return;
+      }
+      const email = session.user && typeof session.user.email === "string" ? session.user.email : "";
+      hint.textContent = email || "— (sign in with an email)";
+    }
+
     function switchPage(page) {
       document.querySelectorAll(".page").forEach((element) => {
         const isCurrent = element.id === `page-${page}`;
@@ -254,18 +272,22 @@ data:
       document.querySelectorAll(".nav-btn").forEach((button) => {
         button.classList.toggle("active", button.dataset.page === page);
       });
-    
+
+      if (page === "checkout") {
+        updateCheckoutEmailHint();
+      }
+
       if (page === "cart" && session.accessToken) {
         refreshCartView().catch((error) => showToast(error.message || "Could not load cart", "error"));
       }
     }
-    
+
     function renderProducts(items) {
       if (!Array.isArray(items) || items.length === 0) {
         productsGrid.innerHTML = "<p class='muted'>No products found.</p>";
         return;
       }
-    
+
       productsGrid.innerHTML = items
         .map(
           (item) => `
@@ -279,13 +301,13 @@ data:
         `
         )
         .join("");
-    
+
       document.querySelectorAll(".quick-add").forEach((button) => {
         button.addEventListener("click", async () => {
           if (!requireSignedIn()) {
             return;
           }
-    
+
           const productId = button.dataset.productId;
           try {
             await request(`/api/cart/${encodeURIComponent(session.user.id)}/items`, {
@@ -302,22 +324,22 @@ data:
         });
       });
     }
-    
+
     function renderCart(data) {
       if (!cartList) {
         return;
       }
-    
+
       const items = Array.isArray(data?.items) ? data.items : [];
       if (items.length === 0) {
         cartList.innerHTML = "<div class='cart-row'><div>Your cart is empty.</div></div>";
         return;
       }
-    
+
       const rows = [
         `<div class="cart-row header"><div>Product</div><div>Qty</div><div></div></div>`
       ];
-    
+
       for (const item of items) {
         rows.push(
           `<div class="cart-row">
@@ -327,10 +349,10 @@ data:
           </div>`
         );
       }
-    
+
       cartList.innerHTML = rows.join("");
     }
-    
+
     async function updateCartCount() {
       if (!session.user || !session.user.id || !session.accessToken) {
         cartCount.textContent = "0";
@@ -346,7 +368,7 @@ data:
         cartCount.textContent = "0";
       }
     }
-    
+
     async function refreshCartView() {
       if (!session.user || !session.user.id) {
         renderCart({ items: [] });
@@ -355,7 +377,7 @@ data:
       const data = await request(`/api/cart/${encodeURIComponent(session.user.id)}`);
       renderCart(data);
     }
-    
+
     document.querySelectorAll(".nav-btn").forEach((button) => {
       button.addEventListener("click", () => {
         const page = button.dataset.page;
@@ -367,7 +389,21 @@ data:
         switchPage(page);
       });
     });
-    
+
+    async function syncSessionFromAuthMe(accessToken) {
+      if (!accessToken) {
+        return;
+      }
+      try {
+        const me = await request("/api/auth/me");
+        if (me && me.user) {
+          setSession(me.user, accessToken);
+        }
+      } catch {
+        /* keep login/register payload if /me fails */
+      }
+    }
+
     document.getElementById("loginBtn").addEventListener("click", async () => {
       try {
         const email = document.getElementById("email").value;
@@ -378,22 +414,56 @@ data:
           body: JSON.stringify({ email, password })
         });
         setSession(data.user, data.accessToken);
-        showToast("Signed in");
         switchPage("catalog");
-    
+        showToast("Signed in");
+        await syncSessionFromAuthMe(data.accessToken);
+
         const products = await request("/api/products");
         renderProducts(products);
       } catch (error) {
         showToast(error.message || "Login failed", "error");
       }
     });
-    
+
+    document.getElementById("registerBtn").addEventListener("click", async () => {
+      try {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        if (!email || !password) {
+          showToast("Enter email and password (min 6 characters).", "error");
+          return;
+        }
+        const data = await request("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, role: "customer" })
+        });
+        if (!data.accessToken) {
+          showToast("Account created — please log in.", "info");
+          return;
+        }
+        setSession(data.user, data.accessToken);
+        switchPage("catalog");
+        showToast("Account created — you are signed in");
+        await syncSessionFromAuthMe(data.accessToken);
+        const products = await request("/api/products");
+        renderProducts(products);
+      } catch (error) {
+        const msg = error.message || "Sign up failed";
+        if (String(msg).includes("503") || msg.toLowerCase().includes("cognito")) {
+          showToast("Sign-up here is for local dev only. Use your Cognito sign-up flow in production.", "error");
+        } else {
+          showToast(msg, "error");
+        }
+      }
+    });
+
     document.getElementById("logoutBtn").addEventListener("click", () => {
       setSession(null, "");
       renderCart({ items: [] });
       showToast("Signed out");
     });
-    
+
     document.getElementById("floatingCartBtn").addEventListener("click", () => {
       if (!session.accessToken) {
         showToast("Please sign in first.", "error");
@@ -402,7 +472,7 @@ data:
       }
       switchPage("cart");
     });
-    
+
     document.getElementById("productsBtn").addEventListener("click", async () => {
       try {
         const products = await request("/api/products");
@@ -411,12 +481,12 @@ data:
         showToast(error.message || "Could not load products", "error");
       }
     });
-    
+
     document.getElementById("addCartBtn").addEventListener("click", async () => {
       if (!requireSignedIn()) {
         return;
       }
-    
+
       try {
         const productId = document.getElementById("productId").value;
         const quantity = Number(document.getElementById("quantity").value);
@@ -432,7 +502,7 @@ data:
         showToast(error.message || "Could not add item", "error");
       }
     });
-    
+
     document.getElementById("viewCartBtn").addEventListener("click", async () => {
       if (!requireSignedIn()) {
         return;
@@ -444,7 +514,7 @@ data:
         showToast(error.message || "Could not refresh cart", "error");
       }
     });
-    
+
     document.getElementById("clearCartBtn").addEventListener("click", async () => {
       if (!requireSignedIn()) {
         return;
@@ -458,7 +528,14 @@ data:
         showToast(error.message || "Could not clear cart", "error");
       }
     });
-    
+
+    document.getElementById("goCheckoutBtn").addEventListener("click", () => {
+      if (!requireSignedIn()) {
+        return;
+      }
+      switchPage("checkout");
+    });
+
     document.getElementById("checkoutBtn").addEventListener("click", async () => {
       if (!requireSignedIn()) {
         return;
@@ -469,14 +546,14 @@ data:
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({})
         });
-        showToast(`Order placed: ${data.orderId}`);
+        showToast(`Order placed: ${data.orderId}. Invoice will be emailed shortly.`);
         await updateCartCount();
         await refreshCartView();
       } catch (error) {
         showToast(error.message || "Checkout failed", "error");
       }
     });
-    
+
     document.getElementById("ordersBtn").addEventListener("click", async () => {
       if (!requireSignedIn()) {
         return;
@@ -489,30 +566,19 @@ data:
         showToast(error.message || "Could not load orders", "error");
       }
     });
-    
-    document.getElementById("adminCheckBtn").addEventListener("click", async () => {
-      if (!requireSignedIn()) {
-        return;
-      }
-      try {
-        await request("/api/auth/admin-check");
-        showToast("Admin access OK");
-      } catch (error) {
-        showToast(error.message || "Admin check failed", "error");
-      }
-    });
+
   styles.css: |
     * {
       box-sizing: border-box;
     }
-    
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #fff5fb;
       color: #6b1f3d;
     }
-    
+
     .topbar {
       position: sticky;
       top: 0;
@@ -525,18 +591,18 @@ data:
       background: linear-gradient(90deg, #ff6fb7, #ff4f9a);
       color: #fff;
     }
-    
+
     .brand {
       font-size: 22px;
       font-weight: 700;
     }
-    
+
     .topnav {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
     }
-    
+
     .nav-btn,
     button {
       border: 0;
@@ -547,26 +613,26 @@ data:
       background: linear-gradient(90deg, #ff7fb3, #ff5fa0);
       color: #fff;
     }
-    
+
     .nav-btn.active {
       background: linear-gradient(90deg, #ff9ac7, #ff7fb3);
     }
-    
+
     .ghost-btn {
       background: #ffe6f2;
       color: #6b1f3d;
     }
-    
+
     .danger-btn {
       background: #ff5f8a;
     }
-    
+
     .session {
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    
+
     .badge {
       display: inline-block;
       border-radius: 999px;
@@ -574,7 +640,7 @@ data:
       padding: 6px 10px;
       font-size: 13px;
     }
-    
+
     .cart-count {
       display: inline-flex;
       align-items: center;
@@ -588,21 +654,21 @@ data:
       color: #6b1f3d;
       font-size: 12px;
     }
-    
+
     .container {
       max-width: 1100px;
       margin: 24px auto;
       padding: 0 16px 24px;
     }
-    
+
     .page {
       display: none;
     }
-    
+
     .page.active {
       display: block;
     }
-    
+
     .panel {
       background: #fff;
       border: 1px solid #f2c4e7;
@@ -611,37 +677,37 @@ data:
       margin-bottom: 18px;
       box-shadow: 0 8px 24px rgba(255, 79, 154, 0.12);
     }
-    
+
     .hero-strip {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
-    
+
     .hero-card {
       background: linear-gradient(135deg, #ffffff, #ffe6f2);
       border: 1px solid #ffd0e8;
       border-radius: 14px;
       padding: 12px;
     }
-    
+
     .hero-card h3 {
       margin: 0 0 6px;
     }
-    
+
     .hero-card p {
       margin: 0;
       color: #a14b6f;
     }
-    
+
     .form-row {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin: 10px 0;
     }
-    
+
     input {
       flex: 1;
       min-width: 220px;
@@ -650,13 +716,13 @@ data:
       padding: 10px;
       font-size: 14px;
     }
-    
+
     .products-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 14px;
     }
-    
+
     .product-card {
       background: #fff;
       border: 1px solid #f2c4e7;
@@ -664,15 +730,20 @@ data:
       padding: 14px;
       box-shadow: 0 8px 20px rgba(255, 79, 154, 0.12);
     }
-    
+
     .product-card h3 {
       margin: 0 0 8px;
     }
-    
+
     .muted {
       color: #a14b6f;
     }
-    
+
+    .muted.small {
+      font-size: 0.875rem;
+      line-height: 1.45;
+    }
+
     .cart-list {
       margin-top: 12px;
       border: 1px solid #ffd0e8;
@@ -680,7 +751,7 @@ data:
       background: #ffffff;
       overflow: hidden;
     }
-    
+
     .cart-row {
       display: grid;
       grid-template-columns: 1fr 120px 120px;
@@ -689,16 +760,16 @@ data:
       border-bottom: 1px solid #ffe6f2;
       align-items: center;
     }
-    
+
     .cart-row:last-child {
       border-bottom: 0;
     }
-    
+
     .cart-row.header {
       font-weight: 700;
       background: #fff5fb;
     }
-    
+
     .toast {
       position: fixed;
       left: 50%;
@@ -714,16 +785,16 @@ data:
       color: #6b1f3d;
       display: none;
     }
-    
+
     .toast.show {
       display: block;
     }
-    
+
     .toast-error {
       border-color: #ffb3c7;
       background: #fff0f4;
     }
-    
+
     .floating-cart-btn {
       position: fixed;
       right: 18px;

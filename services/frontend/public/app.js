@@ -78,7 +78,17 @@ function setSession(user, token) {
   session.accessToken = token || "";
   const label = session.user ? `${session.user.email} (${session.user.role})` : "Guest";
   sessionBadge.textContent = label;
+  updateCheckoutEmailHint();
   updateCartCount().catch(() => {});
+}
+
+function updateCheckoutEmailHint() {
+  const hint = document.getElementById("checkoutEmailHint");
+  if (!hint) {
+    return;
+  }
+  const email = session.user && typeof session.user.email === "string" ? session.user.email : "";
+  hint.textContent = email || "— (sign in with an email)";
 }
 
 function switchPage(page) {
@@ -89,6 +99,10 @@ function switchPage(page) {
   document.querySelectorAll(".nav-btn").forEach((button) => {
     button.classList.toggle("active", button.dataset.page === page);
   });
+
+  if (page === "checkout") {
+    updateCheckoutEmailHint();
+  }
 
   if (page === "cart" && session.accessToken) {
     refreshCartView().catch((error) => showToast(error.message || "Could not load cart", "error"));
@@ -203,6 +217,20 @@ document.querySelectorAll(".nav-btn").forEach((button) => {
   });
 });
 
+async function syncSessionFromAuthMe(accessToken) {
+  if (!accessToken) {
+    return;
+  }
+  try {
+    const me = await request("/api/auth/me");
+    if (me && me.user) {
+      setSession(me.user, accessToken);
+    }
+  } catch {
+    /* keep login/register payload if /me fails */
+  }
+}
+
 document.getElementById("loginBtn").addEventListener("click", async () => {
   try {
     const email = document.getElementById("email").value;
@@ -213,13 +241,47 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       body: JSON.stringify({ email, password })
     });
     setSession(data.user, data.accessToken);
-    showToast("Signed in");
     switchPage("catalog");
+    showToast("Signed in");
+    await syncSessionFromAuthMe(data.accessToken);
 
     const products = await request("/api/products");
     renderProducts(products);
   } catch (error) {
     showToast(error.message || "Login failed", "error");
+  }
+});
+
+document.getElementById("registerBtn").addEventListener("click", async () => {
+  try {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    if (!email || !password) {
+      showToast("Enter email and password (min 6 characters).", "error");
+      return;
+    }
+    const data = await request("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, role: "customer" })
+    });
+    if (!data.accessToken) {
+      showToast("Account created — please log in.", "info");
+      return;
+    }
+    setSession(data.user, data.accessToken);
+    switchPage("catalog");
+    showToast("Account created — you are signed in");
+    await syncSessionFromAuthMe(data.accessToken);
+    const products = await request("/api/products");
+    renderProducts(products);
+  } catch (error) {
+    const msg = error.message || "Sign up failed";
+    if (String(msg).includes("503") || msg.toLowerCase().includes("cognito")) {
+      showToast("Sign-up here is for local dev only. Use your Cognito sign-up flow in production.", "error");
+    } else {
+      showToast(msg, "error");
+    }
   }
 });
 
@@ -294,6 +356,13 @@ document.getElementById("clearCartBtn").addEventListener("click", async () => {
   }
 });
 
+document.getElementById("goCheckoutBtn").addEventListener("click", () => {
+  if (!requireSignedIn()) {
+    return;
+  }
+  switchPage("checkout");
+});
+
 document.getElementById("checkoutBtn").addEventListener("click", async () => {
   if (!requireSignedIn()) {
     return;
@@ -304,7 +373,7 @@ document.getElementById("checkoutBtn").addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({})
     });
-    showToast(`Order placed: ${data.orderId}`);
+    showToast(`Order placed: ${data.orderId}. Invoice will be emailed shortly.`);
     await updateCartCount();
     await refreshCartView();
   } catch (error) {
@@ -325,14 +394,3 @@ document.getElementById("ordersBtn").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("adminCheckBtn").addEventListener("click", async () => {
-  if (!requireSignedIn()) {
-    return;
-  }
-  try {
-    await request("/api/auth/admin-check");
-    showToast("Admin access OK");
-  } catch (error) {
-    showToast(error.message || "Admin check failed", "error");
-  }
-});

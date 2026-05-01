@@ -317,6 +317,13 @@ app.post("/checkout", requireAuth, async (req, res) => {
     if (!email || typeof email !== "string") {
       return res.status(400).json({ error: "Unable to resolve checkout email from token" });
     }
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail.includes("@") || trimmedEmail === "unknown") {
+      return res.status(400).json({
+        error:
+          "Your account does not have a usable email for invoices. Sign in with an email address (or complete email verification in Cognito)."
+      });
+    }
 
     const cartResponse = await fetchJson(`${cartBaseUrl}/cart/${userId}`, {
       headers: { Authorization: `Bearer ${req.accessToken}` }
@@ -350,7 +357,7 @@ app.post("/checkout", requireAuth, async (req, res) => {
     const order = {
       id: createOrderId(),
       userId,
-      email,
+      email: trimmedEmail,
       items: pricedItems,
       total: roundedTotal,
       status: "confirmed",
@@ -366,19 +373,20 @@ app.post("/checkout", requireAuth, async (req, res) => {
 
     const invoiceEvent = buildInvoiceEvent(order);
 
-    console.log("Invoice event:", JSON.stringify(invoiceEvent));
-    try {
-      const invoiceResult = await triggerInvoice(invoiceEvent);
-      console.log("Invoice trigger result:", invoiceResult);
-    } catch (workerError) {
-      console.error("Invoice trigger failed:", workerError.message);
-    }
-
-    return res.status(201).json({
+    res.status(201).json({
       orderId: order.id,
       status: order.status,
       total: order.total
     });
+
+    // Do not await: SQS/HTTP invoice work must not delay the checkout HTTP response.
+    void triggerInvoice(invoiceEvent)
+      .then((invoiceResult) => {
+        console.log("Invoice trigger result:", invoiceResult);
+      })
+      .catch((workerError) => {
+        console.error("Invoice trigger failed:", workerError.message);
+      });
   } catch (error) {
     const status = error.status || 500;
     const message =

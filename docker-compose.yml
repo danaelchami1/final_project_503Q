@@ -45,10 +45,15 @@ services:
     container_name: shopcloud-invoice-worker
     environment:
       - PORT=3004
+      # Optional: set SES_FROM_EMAIL to a SES-verified sender to test email from your machine.
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SES_FROM_EMAIL=${SES_FROM_EMAIL:-}
     ports:
       - "3004:3004"
     volumes:
       - ./services/invoice-worker/invoices:/app/invoices
+      # So the SDK can use profiles / SSO cache (omit if you rely only on explicit env keys).
+      - ~/.aws:/root/.aws:ro
 
   auth:
     build:

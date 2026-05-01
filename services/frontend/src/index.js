@@ -155,6 +155,19 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+app.post("/api/register", async (req, res) => {
+  try {
+    const data = await requestJson(`${authBaseUrl}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req.body || {})
+    });
+    res.status(201).json(data);
+  } catch (error) {
+    res.status(error.status || 500).json(error.body || { error: error.message });
+  }
+});
+
 app.get("/api/orders", async (_req, res) => {
   try {
     const data = await requestJson(`${checkoutBaseUrl}/orders`, {

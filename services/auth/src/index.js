@@ -162,13 +162,33 @@ function getJwksForIssuer(issuer) {
   return jwksByIssuer.get(issuer);
 }
 
+function extractEmailFromCognitoPayload(payload) {
+  const candidates = [
+    payload.email,
+    payload.preferred_username,
+    payload.username,
+    payload["cognito:username"]
+  ];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim() && value.includes("@")) {
+      return value.trim();
+    }
+  }
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "unknown";
+}
+
 function claimsToSession(payload) {
   const groups = Array.isArray(payload["cognito:groups"]) ? payload["cognito:groups"] : [];
   const role = groups.includes(cognitoAdminGroup) ? "admin" : "customer";
 
   return {
     id: payload.sub || "unknown",
-    email: payload.email || payload.username || "unknown",
+    email: extractEmailFromCognitoPayload(payload),
     role,
     claims: payload
   };
@@ -306,8 +326,14 @@ app.post("/auth/register", (req, res) => {
   };
   users.push(newUser);
 
+  const token = createToken();
+  const sessionPayload = sanitizeUser(newUser);
+  activeTokens.set(token, sessionPayload);
+
   return res.status(201).json({
-    user: sanitizeUser(newUser)
+    user: sessionPayload,
+    accessToken: token,
+    tokenType: "Bearer"
   });
 });
 
