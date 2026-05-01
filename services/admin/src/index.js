@@ -8,12 +8,9 @@ const app = express();
 const port = Number(process.env.PORT) || 3006;
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3005";
 const checkoutServiceUrl = process.env.CHECKOUT_SERVICE_URL || "http://127.0.0.1:3003";
-<<<<<<< HEAD
 const catalogServiceUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
-=======
 const authRateLimitWindowMs = Number(process.env.ADMIN_AUTH_RATE_LIMIT_WINDOW_MS) || 5 * 60 * 1000;
 const authRateLimitMax = Number(process.env.ADMIN_AUTH_RATE_LIMIT_MAX) || 8;
->>>>>>> maryam-branch
 
 let inventoryPanelHtml = "";
 try {
@@ -273,10 +270,7 @@ app.listen(port, () => {
   console.log(`Admin service is running on port ${port}`);
   console.log(`Using AUTH_SERVICE_URL=${authServiceUrl}`);
   console.log(`Using CHECKOUT_SERVICE_URL=${checkoutServiceUrl}`);
-<<<<<<< HEAD
   console.log(`Using CATALOG_SERVICE_URL=${catalogServiceUrl}`);
-=======
   console.log(`Using ADMIN_AUTH_RATE_LIMIT_WINDOW_MS=${authRateLimitWindowMs}`);
   console.log(`Using ADMIN_AUTH_RATE_LIMIT_MAX=${authRateLimitMax}`);
->>>>>>> maryam-branch
 });

@@ -110,29 +110,26 @@ jobs:
         run: |
           aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
 
-<<<<<<< HEAD
-      - name: Sanitize legacy env conflicts
-=======
       - name: Validate admin private ingress prerequisites
         env:
           ENABLE_ADMIN_PRIVATE_INGRESS: ${{ secrets.ENABLE_ADMIN_PRIVATE_INGRESS }}
+          ENABLE_PUBLIC_CUSTOMER_INGRESS: ${{ secrets.ENABLE_PUBLIC_CUSTOMER_INGRESS }}
         run: |
-          if [ "${ENABLE_ADMIN_PRIVATE_INGRESS}" != "true" ]; then
-            echo "Admin private ingress disabled for this environment."
+          if [ "${ENABLE_ADMIN_PRIVATE_INGRESS}" != "true" ] && [ "${ENABLE_PUBLIC_CUSTOMER_INGRESS}" != "true" ]; then
+            echo "Ingress ALB checks skipped (both admin and public ingress disabled)."
             exit 0
           fi
 
-          echo "Admin private ingress enabled. Validating AWS Load Balancer Controller..."
+          echo "Ingress ALB path enabled. Validating AWS Load Balancer Controller..."
           if ! kubectl get deployment aws-load-balancer-controller -n kube-system >/dev/null 2>&1; then
             echo "Missing deployment kube-system/aws-load-balancer-controller."
-            echo "Install the controller or set ENABLE_ADMIN_PRIVATE_INGRESS=false."
+            echo "Install the controller or disable ingress flags in environment secrets."
             exit 1
           fi
 
           kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=300s
 
       - name: Sanitize legacy checkout env conflicts
->>>>>>> maryam-branch
         run: |
           # Some older deployments carried CHECKOUT_CONFIG_SECRET_ID as a literal value.
           # Remove it before server-side apply so valueFrom can be applied cleanly.
@@ -143,19 +140,20 @@ jobs:
       - name: Apply Kubernetes manifests (exclude app secrets)
         env:
           ENABLE_ADMIN_PRIVATE_INGRESS: ${{ secrets.ENABLE_ADMIN_PRIVATE_INGRESS }}
+          ENABLE_PUBLIC_CUSTOMER_INGRESS: ${{ secrets.ENABLE_PUBLIC_CUSTOMER_INGRESS }}
         run: |
           for f in k8s/*.yaml; do
-<<<<<<< HEAD
-            if [ "$(basename "$f")" = "app-secrets.yaml" ] || [ "$(basename "$f")" = "nginx-frontend-configmap.yaml" ]; then
-=======
             base="$(basename "$f")"
-            if [ "${base}" = "app-secrets.yaml" ]; then
->>>>>>> maryam-branch
+            if [ "${base}" = "app-secrets.yaml" ] || [ "${base}" = "nginx-frontend-configmap.yaml" ]; then
               echo "Skipping $f (managed outside CI)"
               continue
             fi
             if [ "${base}" = "admin-private-ingress.yaml" ] && [ "${ENABLE_ADMIN_PRIVATE_INGRESS}" != "true" ]; then
               echo "Skipping $f (admin private ingress disabled for this environment)"
+              continue
+            fi
+            if [ "${base}" = "public-customer-ingress.yaml" ] && [ "${ENABLE_PUBLIC_CUSTOMER_INGRESS}" != "true" ]; then
+              echo "Skipping $f (public customer ingress disabled for this environment)"
               continue
             fi
             # Server-side apply avoids stale last-applied annotation merge conflicts.

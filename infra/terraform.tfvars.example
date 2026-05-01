@@ -13,6 +13,15 @@ enable_rds_multi_az = true
 enable_rds_cross_region_replica = false
 dr_region = "us-west-2"
 enable_redis_multi_az = false
+enable_public_edge = false
+enable_public_alb = false
+root_domain_name = ""
+public_hostname = ""
+# Set this to the AWS Load Balancer Controller public ingress hostname (k8s/public-customer-ingress.yaml),
+# or leave empty when public edge is disabled.
+public_alb_dns_name = ""
+# Optional: latency aliases (for multi-region endpoint strategy). Leave empty for single-alias mode.
+public_latency_records = []
 enable_private_admin_path = false
 admin_vpn_server_certificate_arn           = ""
 admin_vpn_client_root_certificate_chain_arn = ""

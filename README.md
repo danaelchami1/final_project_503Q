@@ -183,7 +183,11 @@ terraform -chdir=infra plan -var-file=envs/prod.tfvars
 ## Remaining feature activations (runtime)
 
 The following are implemented in code but require explicit activation:
-- Public edge path: set `enable_public_edge=true` with valid Route53 zone + ACM cert + hostname.
+- Public edge path:
+  - apply `k8s/public-customer-ingress.yaml` (internet-facing ALB via AWS Load Balancer Controller)
+  - set `enable_public_edge=true` with valid Route53 zone + hostname
+  - set `public_alb_dns_name` to the public ingress ALB DNS
+  - optional: configure `public_latency_records` for Route53 latency-based alias routing
 - Private admin path: set `enable_private_admin_path=true` plus ACM ARNs for **server** and **client CA** (`admin_vpn_server_certificate_arn`, `admin_vpn_client_root_certificate_chain_arn`). Use `infra/scripts/generate-client-vpn-certs.sh` and `terraform output admin_client_vpn_endpoint_dns_name`; details in `services/admin/README.md`.
 - RDS/Redis HA modes: set `enable_rds_multi_az=true`, `enable_rds_cross_region_replica=true`, `enable_redis_multi_az=true` in target environment.
 
@@ -206,7 +210,7 @@ Completed and stable:
 - CI depth improved (Terraform validate/fmt + service build/syntax + dependency audit).
 
 Partially complete / environment-blocked:
-- Public edge path requires real Route53 hosted zone/domain + certificate + `enable_public_edge=true`.
+- Public edge path requires real Route53 hosted zone/domain + active public ingress ALB DNS + `enable_public_edge=true`.
 - Private admin VPN path requires two ACM imports (server + client-signing CA), Client VPN SG ingress fix in `infra/private_admin.tf`, and AWS VPN Client profile with mutual TLS.
 - Full HA activation (RDS DR + Redis Multi-AZ) is coded but may be blocked by existing env drift/state constraints.
 

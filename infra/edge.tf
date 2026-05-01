@@ -1,5 +1,6 @@
 locals {
   effective_public_alb_dns_name = var.public_alb_dns_name != "" ? var.public_alb_dns_name : (var.enable_public_alb ? aws_lb.public[0].dns_name : "")
+  public_latency_routing_enabled = local.public_edge_enabled && length(var.public_latency_records) > 0
   public_edge_enabled = (
     var.enable_public_edge &&
     var.root_domain_name != "" &&
@@ -114,7 +115,8 @@ resource "aws_cloudfront_distribution" "public" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "https-only"
+      # Edge TLS terminates at CloudFront; ALB origin may run HTTP inside AWS network.
+      origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -152,7 +154,7 @@ resource "aws_cloudfront_distribution" "public" {
 }
 
 resource "aws_route53_record" "public_customer" {
-  count = local.public_edge_enabled ? 1 : 0
+  count = local.public_edge_enabled && !local.public_latency_routing_enabled ? 1 : 0
 
   zone_id = aws_route53_zone.public[0].zone_id
   name    = var.public_hostname
@@ -162,5 +164,26 @@ resource "aws_route53_record" "public_customer" {
     name                   = aws_cloudfront_distribution.public[0].domain_name
     zone_id                = aws_cloudfront_distribution.public[0].hosted_zone_id
     evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "public_customer_latency" {
+  for_each = local.public_latency_routing_enabled ? {
+    for record in var.public_latency_records : record.set_identifier => record
+  } : {}
+
+  zone_id        = aws_route53_zone.public[0].zone_id
+  name           = var.public_hostname
+  type           = "A"
+  set_identifier = each.value.set_identifier
+
+  latency_routing_policy {
+    region = each.value.region
+  }
+
+  alias {
+    name                   = each.value.dns_name
+    zone_id                = each.value.zone_id
+    evaluate_target_health = each.value.evaluate_target_health
   }
 }

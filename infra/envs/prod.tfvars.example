@@ -12,6 +12,13 @@ enable_rds_multi_az                 = true
 enable_rds_cross_region_replica     = true
 enable_redis_multi_az               = true
 enable_public_edge                  = true
+enable_public_alb                   = false
+# Set this to your public ingress ALB DNS (from: kubectl get ingress public-customer ...).
+public_alb_dns_name                 = ""
+root_domain_name                    = "example.com"
+public_hostname                     = "shop.example.com"
+# Optional multi-region latency records. Keep [] for single-alias mode.
+public_latency_records              = []
 enable_private_admin_path                    = true
 admin_vpn_server_certificate_arn             = "" # set after ACM import (server leaf + chain)
 admin_vpn_client_root_certificate_chain_arn  = "" # set after ACM import (CA that signed client certs)

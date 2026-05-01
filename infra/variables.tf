@@ -221,6 +221,18 @@ variable "public_alb_dns_name" {
   default     = ""
 }
 
+variable "public_latency_records" {
+  description = "Optional latency-based Route53 aliases for the public hostname (set_identifier + region + alias target)"
+  type = list(object({
+    set_identifier         = string
+    region                 = string
+    dns_name               = string
+    zone_id                = string
+    evaluate_target_health = bool
+  }))
+  default = []
+}
+
 variable "enable_public_alb" {
   description = "Create a Terraform-managed public ALB for customer traffic"
   type        = bool
