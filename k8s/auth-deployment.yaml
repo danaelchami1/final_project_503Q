@@ -32,7 +32,7 @@ spec:
             - name: AWS_REGION
               value: "us-east-1"
             - name: USE_AWS_SSM_AUTH_CONFIG
-              value: "true"
+              value: "false"
             - name: AUTH_SSM_CUSTOMERS_POOL_ID_PARAM
               value: "/shopcloud/dev/auth/cognito/customers_pool_id"
             - name: AUTH_SSM_CUSTOMERS_CLIENT_ID_PARAM
@@ -45,6 +45,14 @@ spec:
               value: "/shopcloud/dev/auth/cognito/admin_group"
             - name: COGNITO_ADMIN_GROUP
               value: "admins"
+            - name: COGNITO_CUSTOMERS_USER_POOL_ID
+              value: "us-east-1_KSzEFHldo"
+            - name: COGNITO_CUSTOMERS_CLIENT_ID
+              value: "60h40p5v95h1iqirci2s4i3qfl"
+            - name: COGNITO_ADMINS_USER_POOL_ID
+              value: "us-east-1_X58zLGhXN"
+            - name: COGNITO_ADMINS_CLIENT_ID
+              value: "2k65o70is0hu4ekjcki5at84tg"
             - name: ENABLE_LOCAL_AUTH
               value: "true"
           resources:
