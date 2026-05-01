@@ -114,38 +114,87 @@ async function uploadToS3(fileName, fileBuffer) {
 }
 
 function buildRawEmail({ toEmail, attachmentName, attachmentBuffer, s3Uri }) {
-  const boundary = `shopcloud-boundary-${Date.now()}`;
+  const mixedBoundary = `shopcloud-mixed-${Date.now()}`;
+  const altBoundary = `shopcloud-alt-${Date.now()}`;
   const attachmentBase64 = attachmentBuffer.toString("base64");
-  const subject = `Your ShopCloud invoice ${attachmentName.replace(".pdf", "")}`;
+  const orderLabel = attachmentName.replace(".pdf", "");
+  const subject = `ShopCloud order confirmation - ${orderLabel}`;
+  const sentAt = new Date().toUTCString();
+  const messageId = `<${Date.now()}.${Math.random().toString(16).slice(2)}@shopcloud.win>`;
   const textBody = [
-    "Thank you for your order.",
+    "Hi there,",
     "",
+    "Thank you for shopping with ShopCloud.",
+    "",
+    `We have received your order (${orderLabel}).`,
     `Your invoice is attached as ${attachmentName}.`,
+    "Your order is now being processed and we will notify you if there are any updates.",
+    "",
+    "Best regards,",
+    "ShopCloud Team",
     s3Uri ? `Archive URI: ${s3Uri}` : ""
   ]
     .filter(Boolean)
     .join("\n");
 
+  const htmlBody = [
+    "<!doctype html>",
+    '<html><body style="margin:0;padding:0;background:#f6f4fb;font-family:Arial,sans-serif;color:#2b2142;">',
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 0;">',
+    "<tr><td align=\"center\">",
+    '<table role="presentation" width="620" cellpadding="0" cellspacing="0" style="max-width:620px;background:#ffffff;border:1px solid #e8def8;border-radius:12px;overflow:hidden;">',
+    '<tr><td style="background:#5f33a8;color:#ffffff;padding:16px 20px;font-size:20px;font-weight:700;">ShopCloud</td></tr>',
+    '<tr><td style="padding:20px;">',
+    '<p style="margin:0 0 12px;">Hi there,</p>',
+    '<p style="margin:0 0 12px;">Thank you for shopping with ShopCloud.</p>',
+    `<p style="margin:0 0 12px;">We have received your order <strong>${orderLabel}</strong>.</p>`,
+    `<p style="margin:0 0 12px;">Your invoice is attached as <strong>${attachmentName}</strong>.</p>`,
+    '<p style="margin:0 0 12px;">Your order is now being processed and we will notify you if there are any updates.</p>',
+    s3Uri ? `<p style="margin:0 0 12px;color:#6b4fa6;">Archive URI: ${s3Uri}</p>` : "",
+    '<p style="margin:16px 0 0;">Best regards,<br/>ShopCloud Team</p>',
+    "</td></tr>",
+    "</table>",
+    "</td></tr>",
+    "</table>",
+    "</body></html>"
+  ]
+    .filter(Boolean)
+    .join("");
+
   return [
-    `From: ${sesFromEmail}`,
+    `From: ShopCloud <${sesFromEmail}>`,
     `To: ${toEmail}`,
+    `Reply-To: ${sesFromEmail}`,
     `Subject: ${subject}`,
+    `Date: ${sentAt}`,
+    `Message-ID: ${messageId}`,
     "MIME-Version: 1.0",
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
     "",
-    `--${boundary}`,
-    "Content-Type: text/plain; charset=utf-8",
-    "Content-Transfer-Encoding: 7bit",
+    `--${mixedBoundary}`,
+    `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+    "",
+    `--${altBoundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
     "",
     textBody,
     "",
-    `--${boundary}`,
+    `--${altBoundary}`,
+    "Content-Type: text/html; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    htmlBody,
+    "",
+    `--${altBoundary}--`,
+    "",
+    `--${mixedBoundary}`,
     `Content-Type: application/pdf; name="${attachmentName}"`,
     "Content-Transfer-Encoding: base64",
     `Content-Disposition: attachment; filename="${attachmentName}"`,
     "",
     attachmentBase64,
-    `--${boundary}--`
+    `--${mixedBoundary}--`
   ].join("\n");
 }
 

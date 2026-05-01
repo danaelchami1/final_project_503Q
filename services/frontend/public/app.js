@@ -3,6 +3,11 @@ const cartList = document.getElementById("cartList");
 const productsGrid = document.getElementById("productsGrid");
 const sessionBadge = document.getElementById("sessionBadge");
 const cartCount = document.getElementById("cartCount");
+const checkoutDrawer = document.getElementById("checkoutDrawer");
+const checkoutDrawerBackdrop = document.getElementById("checkoutDrawerBackdrop");
+const checkoutSummary = document.getElementById("checkoutSummary");
+const thankYouOrderId = document.getElementById("thankYouOrderId");
+const thankYouEmail = document.getElementById("thankYouEmail");
 
 const session = {
   accessToken: "",
@@ -100,13 +105,19 @@ function switchPage(page) {
     button.classList.toggle("active", button.dataset.page === page);
   });
 
-  if (page === "checkout") {
-    updateCheckoutEmailHint();
-  }
-
   if (page === "cart" && session.accessToken) {
     refreshCartView().catch((error) => showToast(error.message || "Could not load cart", "error"));
   }
+}
+
+function closeCheckoutDrawer() {
+  checkoutDrawer.classList.add("hidden");
+  checkoutDrawerBackdrop.classList.add("hidden");
+}
+
+function openCheckoutDrawer() {
+  checkoutDrawer.classList.remove("hidden");
+  checkoutDrawerBackdrop.classList.remove("hidden");
 }
 
 function renderProducts(items) {
@@ -199,21 +210,36 @@ async function updateCartCount() {
 async function refreshCartView() {
   if (!session.user || !session.user.id) {
     renderCart({ items: [] });
-    return;
+    return { items: [] };
   }
   const data = await request(`/api/cart/${encodeURIComponent(session.user.id)}`);
   renderCart(data);
+  return data;
+}
+
+function renderCheckoutSummary(data) {
+  const items = Array.isArray(data?.items) ? data.items : [];
+  if (items.length === 0) {
+    checkoutSummary.innerHTML = "<p class='muted'>Your cart is empty.</p>";
+    return;
+  }
+
+  const totalItems = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  checkoutSummary.innerHTML = [
+    "<div class='checkout-summary-row checkout-summary-head'><span>Item</span><span>Qty</span></div>",
+    ...items.map(
+      (item) =>
+        `<div class='checkout-summary-row'><span>${escapeHtml(item.productId)}</span><span>${escapeHtml(String(item.quantity || 0))}</span></div>`
+    ),
+    `<div class='checkout-summary-total'>Total units: ${totalItems}</div>`
+  ].join("");
 }
 
 document.querySelectorAll(".nav-btn").forEach((button) => {
   button.addEventListener("click", () => {
     const page = button.dataset.page;
-    if ((page === "cart" || page === "checkout") && !session.accessToken) {
-      showToast("Please sign in first.", "error");
-      switchPage("home");
-      return;
-    }
     switchPage(page);
+    closeCheckoutDrawer();
   });
 });
 
@@ -288,6 +314,7 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
 document.getElementById("logoutBtn").addEventListener("click", () => {
   setSession(null, "");
   renderCart({ items: [] });
+  closeCheckoutDrawer();
   showToast("Signed out");
 });
 
@@ -298,6 +325,7 @@ document.getElementById("floatingCartBtn").addEventListener("click", () => {
     return;
   }
   switchPage("cart");
+  closeCheckoutDrawer();
 });
 
 document.getElementById("productsBtn").addEventListener("click", async () => {
@@ -360,8 +388,17 @@ document.getElementById("goCheckoutBtn").addEventListener("click", () => {
   if (!requireSignedIn()) {
     return;
   }
-  switchPage("checkout");
+  refreshCartView()
+    .then((data) => {
+      updateCheckoutEmailHint();
+      renderCheckoutSummary(data);
+      openCheckoutDrawer();
+    })
+    .catch((error) => showToast(error.message || "Could not load checkout", "error"));
 });
+
+document.getElementById("closeCheckoutDrawerBtn").addEventListener("click", closeCheckoutDrawer);
+checkoutDrawerBackdrop.addEventListener("click", closeCheckoutDrawer);
 
 document.getElementById("checkoutBtn").addEventListener("click", async () => {
   if (!requireSignedIn()) {
@@ -373,10 +410,26 @@ document.getElementById("checkoutBtn").addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({})
     });
-    showToast(`Order placed: ${data.orderId}. Invoice will be emailed shortly.`);
+    const orderId = data.orderId || "—";
+    const email = session.user?.email || "your email";
+    thankYouOrderId.textContent = orderId;
+    thankYouEmail.textContent = email;
+    showToast(`Order placed: ${orderId}. Invoice will be emailed shortly.`);
+    closeCheckoutDrawer();
+    switchPage("thank-you");
     await updateCartCount();
     await refreshCartView();
   } catch (error) {
     showToast(error.message || "Checkout failed", "error");
+  }
+});
+
+document.getElementById("continueShoppingBtn").addEventListener("click", async () => {
+  switchPage("catalog");
+  try {
+    const products = await request("/api/products");
+    renderProducts(products);
+  } catch (error) {
+    showToast(error.message || "Could not load products", "error");
   }
 });

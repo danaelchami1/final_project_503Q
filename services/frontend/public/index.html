@@ -9,14 +9,13 @@
   <body>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <header class="topbar">
-      <div class="brand">ShopCloud</div>
+      <div class="brand-wrap">
+        <div class="brand">ShopCloud</div>
+        <div class="brand-subtitle">Fast essentials across EU and US</div>
+      </div>
       <nav class="topnav">
         <button class="nav-btn active" data-page="home">Home</button>
         <button class="nav-btn" data-page="catalog">Catalog</button>
-        <button class="nav-btn cart-nav-btn" data-page="cart">
-          &#128722; Cart <span id="cartCount" class="cart-count">0</span>
-        </button>
-        <button class="nav-btn" data-page="checkout">Checkout</button>
       </nav>
       <div class="session">
         <span id="sessionBadge" class="badge">Guest</span>
@@ -85,26 +84,38 @@
         <div id="cartList" class="cart-list"></div>
       </section>
 
-      <section class="page" id="page-checkout">
-        <h1>Checkout</h1>
-        <p class="muted">Checkout uses your signed-in account. Your order is confirmed immediately.</p>
-        <p class="muted" id="checkoutInvoiceHint">
-          Your invoice PDF will be emailed to <strong id="checkoutEmailHint">—</strong> shortly (this does not delay
-          checkout).
-        </p>
-        <p class="checkout-internal-hint muted">
-          Warehouse staff: inventory, stock, returns, and order tables live on the <strong>internal admin</strong> app
-          (VPN / internal URL only), not on this public page.
-        </p>
-        <div class="form-row">
-          <button id="checkoutBtn">Place Order</button>
+      <section class="page" id="page-thank-you">
+        <div class="panel">
+          <h1>Thank you for shopping with ShopCloud</h1>
+          <p class="muted">
+            Your order <strong id="thankYouOrderId">—</strong> has been placed.
+          </p>
+          <p class="muted">
+            Your invoice will be sent shortly to <strong id="thankYouEmail">—</strong>.
+          </p>
+          <div class="form-row">
+            <button id="continueShoppingBtn" type="button">Continue shopping</button>
+          </div>
         </div>
       </section>
-
     </main>
 
+    <div id="checkoutDrawerBackdrop" class="checkout-drawer-backdrop hidden"></div>
+    <aside id="checkoutDrawer" class="checkout-drawer hidden" aria-label="Checkout panel">
+      <div class="checkout-drawer-header">
+        <h2>Checkout</h2>
+        <button id="closeCheckoutDrawerBtn" class="ghost-btn" type="button">Close</button>
+      </div>
+      <p class="muted">Review your order, then place checkout.</p>
+      <p class="muted" id="checkoutInvoiceHint">
+        Invoice email destination: <strong id="checkoutEmailHint">—</strong>
+      </p>
+      <div id="checkoutSummary" class="checkout-summary"></div>
+      <button id="checkoutBtn" type="button">Place Order</button>
+    </aside>
+
     <button id="floatingCartBtn" class="floating-cart-btn" aria-label="Open cart page">
-      &#128722;
+      &#128722; <span id="cartCount" class="cart-count">0</span>
     </button>
 
     <script src="/app.js"></script>
