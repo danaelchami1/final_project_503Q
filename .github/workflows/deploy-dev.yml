@@ -110,11 +110,13 @@ jobs:
         run: |
           aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
 
-      - name: Sanitize legacy checkout env conflicts
+      - name: Sanitize legacy env conflicts
         run: |
           # Some older deployments carried CHECKOUT_CONFIG_SECRET_ID as a literal value.
           # Remove it before server-side apply so valueFrom can be applied cleanly.
           kubectl set env deployment/checkout CHECKOUT_CONFIG_SECRET_ID- || true
+          # Older cart deployments may carry REDIS_URL with valueFrom; remove to avoid value/valueFrom conflict.
+          kubectl set env deployment/cart REDIS_URL- || true
 
       - name: Apply Kubernetes manifests (exclude app secrets)
         run: |
