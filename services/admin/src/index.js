@@ -8,7 +8,12 @@ const app = express();
 const port = Number(process.env.PORT) || 3006;
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3005";
 const checkoutServiceUrl = process.env.CHECKOUT_SERVICE_URL || "http://127.0.0.1:3003";
+<<<<<<< HEAD
 const catalogServiceUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
+=======
+const authRateLimitWindowMs = Number(process.env.ADMIN_AUTH_RATE_LIMIT_WINDOW_MS) || 5 * 60 * 1000;
+const authRateLimitMax = Number(process.env.ADMIN_AUTH_RATE_LIMIT_MAX) || 8;
+>>>>>>> maryam-branch
 
 let inventoryPanelHtml = "";
 try {
@@ -26,7 +31,47 @@ app.get("/", (_req, res) => {
   res.status(200).send(inventoryPanelHtml);
 });
 
+app.use((req, res, next) => {
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'");
+  next();
+});
+
 app.use(express.json());
+
+const authAttempts = new Map();
+
+function getRateLimitKey(req) {
+  const forwardedFor = req.headers["x-forwarded-for"];
+  if (typeof forwardedFor === "string" && forwardedFor.trim()) {
+    return forwardedFor.split(",")[0].trim();
+  }
+  return req.ip || req.socket.remoteAddress || "unknown";
+}
+
+function authRateLimit(req, res, next) {
+  const key = getRateLimitKey(req);
+  const now = Date.now();
+  const entry = authAttempts.get(key);
+
+  if (!entry || now - entry.windowStart >= authRateLimitWindowMs) {
+    authAttempts.set(key, { windowStart: now, count: 1 });
+    return next();
+  }
+
+  if (entry.count >= authRateLimitMax) {
+    const retryAfterSeconds = Math.ceil((authRateLimitWindowMs - (now - entry.windowStart)) / 1000);
+    res.setHeader("Retry-After", String(Math.max(retryAfterSeconds, 1)));
+    return res.status(429).json({
+      error: "Too many admin auth attempts. Try again later."
+    });
+  }
+
+  entry.count += 1;
+  return next();
+}
 
 async function proxyJsonToAuth(authPath, req, res) {
   try {
@@ -47,9 +92,11 @@ async function proxyJsonToAuth(authPath, req, res) {
   }
 }
 
-app.post("/cognito-admin/login", (req, res) => proxyJsonToAuth("/auth/cognito-admin/login", req, res));
+app.post("/cognito-admin/login", authRateLimit, (req, res) => proxyJsonToAuth("/auth/cognito-admin/login", req, res));
 
-app.post("/cognito-admin/respond-mfa", (req, res) => proxyJsonToAuth("/auth/cognito-admin/respond-mfa", req, res));
+app.post("/cognito-admin/respond-mfa", authRateLimit, (req, res) =>
+  proxyJsonToAuth("/auth/cognito-admin/respond-mfa", req, res)
+);
 
 function requestJson(url, options = {}) {
   return new Promise((resolve, reject) => {
@@ -226,5 +273,10 @@ app.listen(port, () => {
   console.log(`Admin service is running on port ${port}`);
   console.log(`Using AUTH_SERVICE_URL=${authServiceUrl}`);
   console.log(`Using CHECKOUT_SERVICE_URL=${checkoutServiceUrl}`);
+<<<<<<< HEAD
   console.log(`Using CATALOG_SERVICE_URL=${catalogServiceUrl}`);
+=======
+  console.log(`Using ADMIN_AUTH_RATE_LIMIT_WINDOW_MS=${authRateLimitWindowMs}`);
+  console.log(`Using ADMIN_AUTH_RATE_LIMIT_MAX=${authRateLimitMax}`);
+>>>>>>> maryam-branch
 });

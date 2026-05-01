@@ -19,6 +19,22 @@ spec:
       labels:
         app: admin
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: admin
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: admin
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: admin
           image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-admin:v1

@@ -7,6 +7,7 @@ const app = express();
 const port = Number(process.env.PORT) || 3002;
 const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3005";
+const redisTlsRejectUnauthorized = String(process.env.REDIS_TLS_REJECT_UNAUTHORIZED || "true") !== "false";
 
 app.use(express.json());
 
@@ -17,7 +18,20 @@ let redisReady = false;
 
 async function connectRedis() {
   try {
-    redisClient = createClient({ url: redisUrl });
+    const parsedRedisUrl = new URL(redisUrl);
+    if (parsedRedisUrl.protocol !== "redis:" && parsedRedisUrl.protocol !== "rediss:") {
+      throw new Error(`Unsupported REDIS_URL protocol: ${parsedRedisUrl.protocol}`);
+    }
+
+    const clientOptions = { url: redisUrl };
+    if (parsedRedisUrl.protocol === "rediss:") {
+      clientOptions.socket = {
+        tls: true,
+        rejectUnauthorized: redisTlsRejectUnauthorized
+      };
+    }
+
+    redisClient = createClient(clientOptions);
     redisClient.on("error", (error) => {
       redisReady = false;
       console.error("Redis client error:", error.message);
@@ -25,6 +39,10 @@ async function connectRedis() {
     await redisClient.connect();
     redisReady = true;
     console.log(`Connected to Redis at ${redisUrl}`);
+    console.log(`Redis TLS mode: ${parsedRedisUrl.protocol === "rediss:" ? "enabled" : "disabled"}`);
+    if (parsedRedisUrl.protocol === "rediss:") {
+      console.log(`Using REDIS_TLS_REJECT_UNAUTHORIZED=${redisTlsRejectUnauthorized}`);
+    }
   } catch (error) {
     redisReady = false;
     redisClient = null;

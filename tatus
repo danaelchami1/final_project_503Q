@@ -1,0 +1,5 @@
+[33m14aeae1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m unify admin/catalog inventory flow
+[33m743bcd5[m signup authentication2
+[33m8c36d7f[m signup authentication
+[33m31e8f53[m enable customer Cognito auth and automate frontend configmap deploy with updated white-purple UX
+[33m85b254b[m improve storefront UX and enhance invoice email formatting
