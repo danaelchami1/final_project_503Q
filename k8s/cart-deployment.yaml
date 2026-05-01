@@ -44,18 +44,11 @@ spec:
           env:
             - name: PORT
               value: "3002"
+            # In-cluster Redis Service name `redis` (k8s/redis-service.yaml).
             - name: REDIS_URL
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: REDIS_URL
-                  optional: true
+              value: "redis://redis:6379"
             - name: REDIS_TLS_REJECT_UNAUTHORIZED
-              valueFrom:
-                secretKeyRef:
-                  name: shopcloud-app-secrets
-                  key: REDIS_TLS_REJECT_UNAUTHORIZED
-                  optional: true
+              value: "false"
             - name: AUTH_SERVICE_URL
               value: "http://auth:3005"
           resources:
