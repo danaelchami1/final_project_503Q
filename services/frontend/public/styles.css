@@ -179,7 +179,7 @@ select {
 
 .catalog-toolbar {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 220px auto;
+  grid-template-columns: minmax(240px, 1fr) 220px auto auto;
   gap: 10px;
   margin-bottom: 10px;
 }

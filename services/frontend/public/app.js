@@ -516,6 +516,15 @@ document.getElementById("clearCatalogFiltersBtn").addEventListener("click", () =
   applyCatalogFilters();
 });
 
+document.getElementById("refreshCatalogBtn").addEventListener("click", async () => {
+  try {
+    await loadCatalogData();
+    showToast("Catalog refreshed");
+  } catch (error) {
+    showToast(error.message || "Could not refresh catalog", "error");
+  }
+});
+
 document.getElementById("addCartBtn").addEventListener("click", async () => {
   if (!requireSignedIn()) {
     return;

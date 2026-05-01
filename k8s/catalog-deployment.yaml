@@ -44,6 +44,10 @@ spec:
           env:
             - name: PORT
               value: "3001"
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            - name: REDIS_TLS_REJECT_UNAUTHORIZED
+              value: "false"
           resources:
             requests:
               cpu: 100m
