@@ -120,7 +120,8 @@
       .grid.two {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-      input {
+      input,
+      select {
         width: 100%;
         border: 1px solid var(--border);
         border-radius: 12px;
@@ -129,7 +130,8 @@
         background: #fff;
         color: var(--text);
       }
-      input:focus {
+      input:focus,
+      select:focus {
         outline: 2px solid rgba(37, 99, 235, 0.25);
         border-color: var(--primary);
       }
@@ -326,7 +328,9 @@
         <div class="grid two" style="margin: 12px 0">
           <input id="newId" type="text" placeholder="Product ID (e.g. p-2001)" />
           <input id="newName" type="text" placeholder="Name" />
-          <input id="newCategory" type="text" placeholder="Category" />
+          <select id="newCategory">
+            <option value="">Select category</option>
+          </select>
           <input id="newPrice" type="number" step="0.01" min="0" placeholder="Price" />
           <input id="newStock" type="number" min="0" step="1" placeholder="Stock (integer)" />
         </div>
@@ -385,6 +389,31 @@
         orders: [],
         busy: false
       };
+
+      function refreshCategoryOptions() {
+        const select = document.getElementById("newCategory");
+        if (!select) return;
+        const previous = select.value;
+        const categories = Array.from(
+          new Set(
+            (uiState.products || [])
+              .map((item) => String(item.category || "").trim())
+              .filter(Boolean)
+          )
+        ).sort((a, b) => a.localeCompare(b));
+        select.innerHTML = '<option value="">Select category</option>';
+        categories.forEach((category) => {
+          const option = document.createElement("option");
+          option.value = category;
+          option.textContent = category;
+          select.appendChild(option);
+        });
+        if (categories.includes(previous)) {
+          select.value = previous;
+        } else if (categories.length === 1) {
+          select.value = categories[0];
+        }
+      }
 
       function setBusy(isBusy) {
         uiState.busy = !!isBusy;
@@ -661,6 +690,7 @@
         try {
           const data = await api("/admin/products", { method: "GET" });
           uiState.products = Array.isArray(data) ? data : [];
+          refreshCategoryOptions();
           renderProductsTable(uiState.products);
           setStatValue("statProducts", data.length);
           setStatus("Loaded " + data.length + " products.", true);

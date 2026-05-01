@@ -21,12 +21,17 @@ async function connectRedis() {
       throw new Error(`Unsupported REDIS_URL protocol: ${parsedRedisUrl.protocol}`);
     }
 
-    const clientOptions = { url: redisUrl };
+    const clientOptions = {
+      url: redisUrl,
+      socket: {
+        connectTimeout: 1500,
+        // In local/CI startup, fail fast and fall back to in-memory.
+        reconnectStrategy: () => false
+      }
+    };
     if (parsedRedisUrl.protocol === "rediss:") {
-      clientOptions.socket = {
-        tls: true,
-        rejectUnauthorized: redisTlsRejectUnauthorized
-      };
+      clientOptions.socket.tls = true;
+      clientOptions.socket.rejectUnauthorized = redisTlsRejectUnauthorized;
     }
 
     redisClient = createClient(clientOptions);
@@ -72,6 +77,11 @@ async function saveInventory(items) {
     return;
   }
   await redisClient.set(inventoryKey, JSON.stringify(items));
+}
+
+function parsePositiveInteger(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 app.get("/health", (_req, res) => {
@@ -181,6 +191,76 @@ app.delete("/admin/products/:id", async (req, res) => {
   await saveInventory(items);
   return res.status(200).json({
     deleted
+  });
+});
+
+// Internal checkout endpoint: validates stock and decrements atomically per request.
+app.post("/internal/checkout/reserve", async (req, res) => {
+  const requestItems = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (requestItems.length === 0) {
+    return res.status(400).json({
+      error: "items must be a non-empty array"
+    });
+  }
+
+  const normalized = [];
+  for (const item of requestItems) {
+    const productId = String(item?.productId || "").trim();
+    const quantity = parsePositiveInteger(item?.quantity);
+    if (!productId || !quantity) {
+      return res.status(400).json({
+        error: "Each item must include productId and positive integer quantity"
+      });
+    }
+    normalized.push({ productId, quantity });
+  }
+
+  const items = await loadInventory();
+  const byId = new Map(items.map((product) => [String(product.id), product]));
+  const insufficient = [];
+
+  for (const requestItem of normalized) {
+    const product = byId.get(requestItem.productId);
+    if (!product) {
+      insufficient.push({
+        productId: requestItem.productId,
+        reason: "not_found"
+      });
+      continue;
+    }
+
+    if (Number(product.stock || 0) < requestItem.quantity) {
+      insufficient.push({
+        productId: requestItem.productId,
+        requested: requestItem.quantity,
+        available: Number(product.stock || 0),
+        reason: "insufficient_stock"
+      });
+    }
+  }
+
+  if (insufficient.length > 0) {
+    return res.status(409).json({
+      error: "Insufficient inventory for one or more items",
+      items: insufficient
+    });
+  }
+
+  const reservedItems = normalized.map((requestItem) => {
+    const product = byId.get(requestItem.productId);
+    product.stock -= requestItem.quantity;
+    return {
+      productId: requestItem.productId,
+      name: product.name,
+      quantity: requestItem.quantity,
+      unitPrice: Number(product.price),
+      lineTotal: Number(product.price) * requestItem.quantity
+    };
+  });
+
+  await saveInventory(items);
+  return res.status(200).json({
+    items: reservedItems
   });
 });
 

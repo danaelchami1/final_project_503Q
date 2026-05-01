@@ -343,19 +343,22 @@ app.post("/checkout", requireAuth, async (req, res) => {
       });
     }
 
-    const pricedItems = await Promise.all(
-      cartItems.map(async (item) => {
-        const product = await fetchJson(`${catalogBaseUrl}/products/${item.productId}`);
-
-        return {
+    const reserveResponse = await fetchJson(`${catalogBaseUrl}/internal/checkout/reserve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: cartItems.map((item) => ({
           productId: item.productId,
-          name: product.name,
-          quantity: item.quantity,
-          unitPrice: Number(product.price),
-          lineTotal: Number(product.price) * item.quantity
-        };
+          quantity: item.quantity
+        }))
       })
-    );
+    });
+    const pricedItems = Array.isArray(reserveResponse.items) ? reserveResponse.items : [];
+    if (pricedItems.length === 0) {
+      return res.status(409).json({
+        error: "Checkout failed because inventory is no longer available"
+      });
+    }
 
     const total = pricedItems.reduce((sum, item) => sum + item.lineTotal, 0);
     const roundedTotal = Number(total.toFixed(2));
@@ -399,7 +402,9 @@ app.post("/checkout", requireAuth, async (req, res) => {
     const message =
       status === 404
         ? "Dependent data not found (cart item or product)"
-        : "Checkout failed";
+        : status === 409
+          ? "Insufficient stock for one or more items in your cart"
+          : "Checkout failed";
 
     console.error("Checkout error:", {
       message: error.message,
