@@ -185,13 +185,13 @@ jobs:
           # Single worker is acceptable for the async processor.
           kubectl scale deployment/invoice-worker --replicas=1
 
-          # Force no-surge rollout behavior to prevent pending surge pods.
-          kubectl patch deployment/catalog --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
-          kubectl patch deployment/cart --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
-          kubectl patch deployment/checkout --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
-          kubectl patch deployment/auth --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
-          kubectl patch deployment/admin --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
-          kubectl patch deployment/invoice-worker --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+          # Keep at least desired capacity during updates while allowing one surge pod.
+          kubectl patch deployment/catalog --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":1,"maxUnavailable":0}}}}'
+          kubectl patch deployment/cart --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":1,"maxUnavailable":0}}}}'
+          kubectl patch deployment/checkout --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":1,"maxUnavailable":0}}}}'
+          kubectl patch deployment/auth --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":1,"maxUnavailable":0}}}}'
+          kubectl patch deployment/admin --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":1,"maxUnavailable":0}}}}'
+          kubectl patch deployment/invoice-worker --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":1,"maxUnavailable":0}}}}'
 
           # Prevent "exceeded progress deadline" on slower/busy clusters.
           for svc in catalog cart checkout auth admin invoice-worker; do
