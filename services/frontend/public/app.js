@@ -380,17 +380,3 @@ document.getElementById("checkoutBtn").addEventListener("click", async () => {
     showToast(error.message || "Checkout failed", "error");
   }
 });
-
-document.getElementById("ordersBtn").addEventListener("click", async () => {
-  if (!requireSignedIn()) {
-    return;
-  }
-  try {
-    const orders = await request("/api/orders");
-    const count = Array.isArray(orders) ? orders.length : 0;
-    showToast(`Loaded ${count} orders (admin only)`);
-  } catch (error) {
-    showToast(error.message || "Could not load orders", "error");
-  }
-});
-

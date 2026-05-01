@@ -72,11 +72,18 @@ async function loadAwsRuntimeConfig() {
   }
 }
 
+function poolOptionsForUrl(url) {
+  const opts = { connectionString: url };
+  // RDS Postgres commonly requires TLS; without ssl, pg_hba may reject the pod with "no encryption".
+  if (url && String(url).includes("rds.amazonaws.com") && !/sslmode\s*=\s*disable/i.test(String(url))) {
+    opts.ssl = { rejectUnauthorized: false };
+  }
+  return opts;
+}
+
 async function connectDatabase() {
   try {
-    dbPool = new Pool({
-      connectionString: databaseUrl
-    });
+    dbPool = new Pool(poolOptionsForUrl(databaseUrl));
     await dbPool.query("SELECT 1");
     await dbPool.query(`
       CREATE TABLE IF NOT EXISTS orders (

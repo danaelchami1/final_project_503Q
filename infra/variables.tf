@@ -149,6 +149,12 @@ variable "invoice_lambda_batch_size" {
   default     = 5
 }
 
+variable "enable_invoice_lambda_sqs_consumer" {
+  description = "When false, the invoice Lambda SQS trigger is disabled so only EKS invoice-worker consumes the queue (avoids duplicate processing and confusing logs). Set true if you run invoices on Lambda instead of the cluster."
+  type        = bool
+  default     = false
+}
+
 variable "enable_rds_multi_az" {
   description = "Enable Multi-AZ deployment for primary RDS instance"
   type        = bool

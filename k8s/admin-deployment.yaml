@@ -30,6 +30,8 @@ spec:
               value: "3006"
             - name: AUTH_SERVICE_URL
               value: "http://auth:3005"
+            - name: CHECKOUT_SERVICE_URL
+              value: "http://checkout:3003"
           resources:
             requests:
               cpu: 100m

@@ -19,6 +19,7 @@ Internal ShopCloud admin microservice: **inventory API** plus a small **HTML pan
 
 - `GET /` — internal HTML panel
 - `GET /health`
+- `GET /admin/orders` (admin token) — proxies to checkout `GET /orders` for read-only order list
 - `GET /admin/products` (admin token)
 - `POST /admin/products` (admin token)
 - `PATCH /admin/products/:id/stock` (admin token) — use for stock corrections and **returns** (increase/decrease stock)
@@ -28,6 +29,7 @@ Internal ShopCloud admin microservice: **inventory API** plus a small **HTML pan
 
 - `PORT` (default: `3006`)
 - `AUTH_SERVICE_URL` (default: `http://127.0.0.1:3005`)
+- `CHECKOUT_SERVICE_URL` (default: `http://127.0.0.1:3003`) — used by `GET /admin/orders`
 
 ## Run locally
 

@@ -73,10 +73,12 @@ services:
     environment:
       - PORT=3006
       - AUTH_SERVICE_URL=http://auth:3005
+      - CHECKOUT_SERVICE_URL=http://checkout:3003
     ports:
       - "3006:3006"
     depends_on:
       - auth
+      - checkout
 
   checkout:
     build:

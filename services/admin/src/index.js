@@ -7,6 +7,7 @@ const https = require("https");
 const app = express();
 const port = Number(process.env.PORT) || 3006;
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3005";
+const checkoutServiceUrl = process.env.CHECKOUT_SERVICE_URL || "http://127.0.0.1:3003";
 
 let inventoryPanelHtml = "";
 try {
@@ -134,6 +135,29 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.get("/admin/orders", requireAdmin, async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: "Missing Authorization header" });
+  }
+
+  try {
+    const data = await requestJson(`${checkoutServiceUrl}/orders`, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader
+      }
+    });
+    return res.status(200).json(data);
+  } catch (error) {
+    const status = error.status || 500;
+    return res.status(status).json({
+      error: "Failed to load orders from checkout",
+      details: error.body || error.message
+    });
+  }
+});
+
 app.get("/admin/products", requireAdmin, (_req, res) => {
   return res.status(200).json(inventory);
 });
@@ -196,4 +220,5 @@ app.delete("/admin/products/:id", requireAdmin, (req, res) => {
 app.listen(port, () => {
   console.log(`Admin service is running on port ${port}`);
   console.log(`Using AUTH_SERVICE_URL=${authServiceUrl}`);
+  console.log(`Using CHECKOUT_SERVICE_URL=${checkoutServiceUrl}`);
 });

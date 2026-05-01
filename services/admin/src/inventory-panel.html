@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ShopCloud — Internal inventory</title>
+    <title>ShopCloud — Internal ops (warehouse)</title>
     <style>
       :root {
         font-family: system-ui, sans-serif;
@@ -93,10 +93,11 @@
       <strong>Internal use only.</strong> Reach this UI only from your private network (VPN, bastion, or internal
       load balancer). Do not expose port 3006 on a public load balancer.
     </div>
-    <h1>Warehouse &amp; catalog — inventory</h1>
+    <h1>Internal ops — inventory &amp; orders</h1>
     <p class="muted">
-      Sign in as an <strong>admin</strong> in the <strong>admins</strong> Cognito pool (or local admin user), then paste
-      the bearer access token below. Returns are handled by adjusting stock (PATCH) or removing a line item (DELETE).
+      This page is <strong>not</strong> the public storefront. Use an <strong>admin</strong> token (admins Cognito pool
+      or local <code>admin@example.com</code>), then paste the bearer access token below. Returns: adjust stock (PATCH)
+      or delete a SKU (DELETE).
     </p>
 
     <label for="token">Admin access token (Bearer)</label>
@@ -130,6 +131,23 @@
         </tr>
       </thead>
       <tbody id="rows"></tbody>
+    </table>
+
+    <h2 style="margin-top: 36px; font-size: 1.1rem; padding-top: 20px; border-top: 2px solid #c5ccd8">Orders (read-only)</h2>
+    <p class="muted">Persisted checkout orders from the database (proxied through this admin service).</p>
+    <button type="button" id="loadOrdersBtn" class="secondary">Refresh orders</button>
+    <table style="margin-top: 12px">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>User</th>
+          <th>Email</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Items (summary)</th>
+        </tr>
+      </thead>
+      <tbody id="ordersRows"></tbody>
     </table>
 
     <script>
@@ -240,8 +258,53 @@
         }
       }
 
+      function summarizeItems(items) {
+        if (!Array.isArray(items)) return "—";
+        try {
+          return items
+            .map((i) => (i.productId || "?") + "×" + (i.quantity ?? "?"))
+            .join(", ");
+        } catch {
+          return "—";
+        }
+      }
+
+      async function loadOrders() {
+        setStatus("Loading orders…", true);
+        const data = await api("/admin/orders", { method: "GET" });
+        const tbody = document.getElementById("ordersRows");
+        tbody.innerHTML = "";
+        if (!Array.isArray(data) || data.length === 0) {
+          setStatus("No orders returned.", true);
+          return;
+        }
+        for (const o of data) {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" +
+            escapeHtml(o.id) +
+            "</td><td>" +
+            escapeHtml(o.userId || "") +
+            "</td><td>" +
+            escapeHtml(o.email || "") +
+            "</td><td>" +
+            Number(o.total || 0).toFixed(2) +
+            "</td><td>" +
+            escapeHtml(o.status || "") +
+            "</td><td>" +
+            escapeHtml(summarizeItems(o.items)) +
+            "</td>";
+          tbody.appendChild(tr);
+        }
+        setStatus("Loaded " + data.length + " orders.", true);
+      }
+
       document.getElementById("loadBtn").addEventListener("click", () => {
         loadInventory().catch((e) => setStatus(e.message || "Load failed", false));
+      });
+
+      document.getElementById("loadOrdersBtn").addEventListener("click", () => {
+        loadOrders().catch((e) => setStatus(e.message || "Orders load failed", false));
       });
 
       document.getElementById("addBtn").addEventListener("click", async () => {

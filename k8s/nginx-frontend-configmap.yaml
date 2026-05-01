@@ -155,9 +155,12 @@ data:
               Your invoice PDF will be emailed to <strong id="checkoutEmailHint">—</strong> shortly (this does not delay
               checkout).
             </p>
+            <p class="checkout-internal-hint muted">
+              Warehouse staff: inventory, stock, returns, and order tables live on the <strong>internal admin</strong> app
+              (VPN / internal URL only), not on this public page.
+            </p>
             <div class="form-row">
               <button id="checkoutBtn">Place Order</button>
-              <button id="ordersBtn" class="ghost-btn">View Orders (Admin)</button>
             </div>
           </section>
 
@@ -554,19 +557,6 @@ data:
       }
     });
 
-    document.getElementById("ordersBtn").addEventListener("click", async () => {
-      if (!requireSignedIn()) {
-        return;
-      }
-      try {
-        const orders = await request("/api/orders");
-        const count = Array.isArray(orders) ? orders.length : 0;
-        showToast(`Loaded ${count} orders (admin only)`);
-      } catch (error) {
-        showToast(error.message || "Could not load orders", "error");
-      }
-    });
-
   styles.css: |
     * {
       box-sizing: border-box;
@@ -742,6 +732,14 @@ data:
     .muted.small {
       font-size: 0.875rem;
       line-height: 1.45;
+    }
+
+    .checkout-internal-hint {
+      max-width: 42rem;
+      padding: 10px 12px;
+      border-left: 4px solid #ff4f9a;
+      background: #fff8fc;
+      border-radius: 0 8px 8px 0;
     }
 
     .cart-list {

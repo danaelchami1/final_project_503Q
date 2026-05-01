@@ -183,5 +183,5 @@ resource "aws_lambda_event_source_mapping" "invoice_queue_to_lambda" {
   event_source_arn = aws_sqs_queue.invoice_queue.arn
   function_name    = aws_lambda_function.invoice_processor.arn
   batch_size       = var.invoice_lambda_batch_size
-  enabled          = true
+  enabled          = var.enable_invoice_lambda_sqs_consumer
 }
