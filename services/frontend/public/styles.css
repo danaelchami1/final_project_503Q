@@ -5,8 +5,8 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: radial-gradient(circle at top, #2b1849 0%, #120a23 62%, #0b0616 100%);
-  color: #f3ecff;
+  background: #ffffff;
+  color: #2f2347;
 }
 
 .topbar {
@@ -18,10 +18,10 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 24px;
-  background: rgba(34, 19, 58, 0.95);
+  background: #ffffff;
   backdrop-filter: blur(6px);
-  border-bottom: 1px solid #5d2ea8;
-  color: #fff;
+  border-bottom: 1px solid #e6dbff;
+  color: #2f2347;
 }
 
 .brand-wrap {
@@ -38,7 +38,7 @@ body {
 
 .brand-subtitle {
   font-size: 12px;
-  color: #d8c8f6;
+  color: #6f5b97;
 }
 
 .topnav {
@@ -49,29 +49,29 @@ body {
 
 .nav-btn,
 button {
-  border: 1px solid #7a48cf;
+  border: 1px solid #7c4dce;
   border-radius: 10px;
   padding: 10px 14px;
   font-weight: 600;
   cursor: pointer;
-  background: linear-gradient(180deg, #7f4cd6, #5a2ca5);
+  background: linear-gradient(180deg, #9f72ef, #8756dd);
   color: #fdf8ff;
 }
 
 .nav-btn.active {
-  background: linear-gradient(180deg, #9c67f2, #6f3ac6);
+  background: linear-gradient(180deg, #b78eff, #9c67f2);
   border-color: #b98fff;
 }
 
 .ghost-btn {
-  background: #2a1747;
-  color: #dcbfff;
-  border-color: #7444c5;
+  background: #f5efff;
+  color: #663da8;
+  border-color: #c4aaf3;
 }
 
 .danger-btn {
-  background: linear-gradient(180deg, #a5267a, #7f195d);
-  border-color: #bf3f8f;
+  background: linear-gradient(180deg, #c763ad, #ad4693);
+  border-color: #b35da0;
 }
 
 .session {
@@ -83,7 +83,7 @@ button {
 .badge {
   display: inline-block;
   border-radius: 999px;
-  background: #4e2d8e;
+  background: #8653dc;
   padding: 6px 10px;
   font-size: 13px;
   border: 1px solid #8c63d4;
@@ -98,8 +98,8 @@ button {
   margin-left: 6px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #efe3ff;
-  color: #4f2d91;
+  background: #ffffff;
+  color: #6b40b5;
   font-size: 12px;
 }
 
@@ -118,12 +118,12 @@ button {
 }
 
 .panel {
-  background: rgba(28, 15, 47, 0.92);
-  border: 1px solid #6334ad;
+  background: #ffffff;
+  border: 1px solid #eadfff;
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 18px;
-  box-shadow: 0 10px 28px rgba(10, 4, 20, 0.45);
+  box-shadow: 0 10px 24px rgba(118, 77, 200, 0.12);
 }
 
 .hero-strip {
@@ -134,8 +134,8 @@ button {
 }
 
 .hero-card {
-  background: linear-gradient(135deg, rgba(55, 31, 90, 0.96), rgba(35, 19, 60, 0.96));
-  border: 1px solid #7042bd;
+  background: linear-gradient(135deg, #faf6ff, #f4edff);
+  border: 1px solid #e4d3ff;
   border-radius: 14px;
   padding: 12px;
 }
@@ -146,7 +146,7 @@ button {
 
 .hero-card p {
   margin: 0;
-  color: #d4c0f3;
+  color: #6f5b97;
 }
 
 .form-row {
@@ -159,12 +159,12 @@ button {
 input {
   flex: 1;
   min-width: 220px;
-  border: 1px solid #7145be;
+  border: 1px solid #cbb2f4;
   border-radius: 10px;
   padding: 10px;
   font-size: 14px;
-  background: #190f2f;
-  color: #f8f3ff;
+  background: #ffffff;
+  color: #352755;
 }
 
 .products-grid {
@@ -174,11 +174,11 @@ input {
 }
 
 .product-card {
-  background: rgba(27, 14, 46, 0.95);
-  border: 1px solid #6438ab;
+  background: #ffffff;
+  border: 1px solid #e4d3ff;
   border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 8px 22px rgba(8, 2, 18, 0.5);
+  box-shadow: 0 8px 20px rgba(118, 77, 200, 0.1);
 }
 
 .product-card h3 {
@@ -186,7 +186,7 @@ input {
 }
 
 .muted {
-  color: #c8b5e8;
+  color: #6d5a92;
 }
 
 .muted.small {
@@ -197,16 +197,16 @@ input {
 .checkout-internal-hint {
   max-width: 42rem;
   padding: 10px 12px;
-  border-left: 4px solid #8756dd;
-  background: rgba(44, 24, 73, 0.8);
+  border-left: 4px solid #9a6af0;
+  background: #f7f1ff;
   border-radius: 0 8px 8px 0;
 }
 
 .cart-list {
   margin-top: 12px;
-  border: 1px solid #683bb1;
+  border: 1px solid #dfccff;
   border-radius: 14px;
-  background: #1a0f30;
+  background: #ffffff;
   overflow: hidden;
 }
 
@@ -215,7 +215,7 @@ input {
   grid-template-columns: 1fr 120px 120px;
   gap: 10px;
   padding: 12px 14px;
-  border-bottom: 1px solid #4c2b82;
+  border-bottom: 1px solid #ede2ff;
   align-items: center;
 }
 
@@ -225,7 +225,7 @@ input {
 
 .cart-row.header {
   font-weight: 700;
-  background: #2a1747;
+  background: #f7f1ff;
 }
 
 .toast {
@@ -237,10 +237,10 @@ input {
   max-width: min(720px, calc(100% - 32px));
   padding: 12px 14px;
   border-radius: 12px;
-  background: #211238;
-  border: 1px solid #7343bf;
-  box-shadow: 0 10px 28px rgba(7, 2, 16, 0.5);
-  color: #f3eaff;
+  background: #ffffff;
+  border: 1px solid #d9c7ff;
+  box-shadow: 0 10px 28px rgba(118, 77, 200, 0.2);
+  color: #31264a;
   display: none;
 }
 
@@ -249,8 +249,8 @@ input {
 }
 
 .toast-error {
-  border-color: #cb5ca5;
-  background: #3b1833;
+  border-color: #cf94c1;
+  background: #fff6fc;
 }
 
 .floating-cart-btn {
@@ -268,15 +268,15 @@ input {
   min-width: 64px;
   padding: 0 12px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #9159ea, #6130b2);
-  box-shadow: 0 10px 28px rgba(7, 2, 16, 0.5);
+  background: linear-gradient(180deg, #a779f5, #8b5ee0);
+  box-shadow: 0 10px 24px rgba(118, 77, 200, 0.3);
   font-size: 20px;
 }
 
 .checkout-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(5, 2, 12, 0.55);
+  background: rgba(67, 38, 115, 0.18);
   z-index: 35;
 }
 
@@ -287,9 +287,9 @@ input {
   width: min(420px, 95vw);
   height: 100vh;
   z-index: 40;
-  background: #160c2b;
-  border-left: 1px solid #7448c3;
-  box-shadow: -12px 0 30px rgba(3, 1, 8, 0.55);
+  background: #ffffff;
+  border-left: 1px solid #ddcbff;
+  box-shadow: -12px 0 30px rgba(118, 77, 200, 0.15);
   padding: 18px;
   overflow-y: auto;
 }
@@ -302,7 +302,7 @@ input {
 }
 
 .checkout-summary {
-  border: 1px solid #643bb0;
+  border: 1px solid #e1d1ff;
   border-radius: 12px;
   margin: 14px 0;
   overflow: hidden;
@@ -313,18 +313,33 @@ input {
   grid-template-columns: 1fr 70px;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid #4c2d81;
+  border-bottom: 1px solid #ecdeff;
 }
 
 .checkout-summary-head {
   font-weight: 700;
-  background: #2a1747;
+  background: #f7f1ff;
 }
 
 .checkout-summary-total {
   padding: 10px 12px;
   font-weight: 700;
-  background: #24133f;
+  background: #f8f4ff;
+}
+
+.auth-panel {
+  max-width: 680px;
+}
+
+.text-link-btn {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: #7346c4;
+  text-decoration: underline;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .hidden {

@@ -4,7 +4,8 @@ const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 const {
   CognitoIdentityProviderClient,
   InitiateAuthCommand,
-  RespondToAuthChallengeCommand
+  RespondToAuthChallengeCommand,
+  SignUpCommand
 } = require("@aws-sdk/client-cognito-identity-provider");
 const { createRemoteJWKSet, jwtVerify } = require("jose");
 
@@ -435,12 +436,6 @@ app.post("/auth/cognito-admin/respond-mfa", async (req, res) => {
 
 // Local fallback endpoints
 app.post("/auth/register", (req, res) => {
-  if (!enableLocalAuth || isCognitoConfigured()) {
-    return res.status(503).json({
-      error: "Local register disabled in Cognito mode"
-    });
-  }
-
   const { email, password, role } = req.body || {};
   if (!email || typeof email !== "string") {
     return res.status(400).json({
@@ -450,6 +445,52 @@ app.post("/auth/register", (req, res) => {
   if (!password || typeof password !== "string" || password.length < 6) {
     return res.status(400).json({
       error: "password is required and must be at least 6 characters"
+    });
+  }
+
+  if (isCognitoConfigured()) {
+    const clientId = cognitoCustomersClientId;
+    if (!clientId) {
+      return res.status(503).json({
+        error: "Customers Cognito app client is not configured"
+      });
+    }
+
+    getCognitoIdpClient()
+      .send(
+        new SignUpCommand({
+          ClientId: clientId,
+          Username: email.trim(),
+          Password: password,
+          UserAttributes: [
+            { Name: "email", Value: email.trim() }
+          ]
+        })
+      )
+      .then((out) => {
+        return res.status(201).json({
+          status: "registered",
+          userSub: out.UserSub || null,
+          userConfirmed: Boolean(out.UserConfirmed),
+          message: out.UserConfirmed
+            ? "Account created successfully."
+            : "Account created. Check your email for verification code if required."
+        });
+      })
+      .catch((error) => {
+        const message = error.message || String(error);
+        const isDuplicate = String(error.name || "").includes("UsernameExists");
+        return res.status(isDuplicate ? 409 : 400).json({
+          error: isDuplicate ? "User already exists" : "Register failed",
+          message
+        });
+      });
+    return;
+  }
+
+  if (!enableLocalAuth) {
+    return res.status(503).json({
+      error: "Local register is disabled"
     });
   }
 
@@ -480,13 +521,56 @@ app.post("/auth/register", (req, res) => {
 });
 
 app.post("/auth/login", (req, res) => {
-  if (!enableLocalAuth || isCognitoConfigured()) {
+  const { email, password } = req.body || {};
+
+  if (isCognitoConfigured()) {
+    const clientId = cognitoCustomersClientId;
+    if (!clientId) {
+      return res.status(503).json({
+        error: "Customers Cognito app client is not configured"
+      });
+    }
+
+    return getCognitoIdpClient()
+      .send(
+        new InitiateAuthCommand({
+          ClientId: clientId,
+          AuthFlow: "USER_PASSWORD_AUTH",
+          AuthParameters: {
+            USERNAME: String(email || "").trim(),
+            PASSWORD: String(password || "")
+          }
+        })
+      )
+      .then((out) => {
+        if (out.AuthenticationResult?.AccessToken) {
+          return res.status(200).json({
+            accessToken: out.AuthenticationResult.AccessToken,
+            idToken: out.AuthenticationResult.IdToken,
+            tokenType: out.AuthenticationResult.TokenType || "Bearer",
+            expiresIn: out.AuthenticationResult.ExpiresIn
+          });
+        }
+
+        return res.status(401).json({
+          error: "Login failed",
+          message: "Unexpected Cognito response"
+        });
+      })
+      .catch((error) => {
+        return res.status(401).json({
+          error: "Login failed",
+          message: error.message || String(error)
+        });
+      });
+  }
+
+  if (!enableLocalAuth) {
     return res.status(503).json({
-      error: "Local login disabled in Cognito mode"
+      error: "Local login is disabled"
     });
   }
 
-  const { email, password } = req.body || {};
   const user = users.find(
     (entry) =>
       entry.email.toLowerCase() === String(email || "").toLowerCase() &&

@@ -43,21 +43,44 @@
             <p>Built with multi-service cloud architecture.</p>
           </div>
         </div>
-            <div class="panel">
-              <h2>Sign In</h2>
-              <p class="muted small">
-                New here? Create an account with your email, then you can check out. Invoices are sent to that same
-                email.
-              </p>
-              <div class="form-row">
-                <input id="email" placeholder="Email" value="customer@example.com" />
-                <input id="password" placeholder="Password" type="password" value="change-me-customer" />
-              </div>
-              <div class="form-row">
-                <button id="loginBtn">Login</button>
-                <button id="registerBtn" type="button" class="ghost-btn">Create account</button>
-              </div>
-            </div>
+        <div class="panel">
+          <h2>Get started</h2>
+          <p class="muted small">Use a standard flow: sign in if you already have an account, or create one first.</p>
+          <div class="form-row">
+            <button id="goLoginBtn" type="button">Sign in</button>
+            <button id="goRegisterBtn" type="button" class="ghost-btn">Create account</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-login">
+        <div class="panel auth-panel">
+          <h1>Sign In</h1>
+          <p class="muted">Welcome back. Enter your email and password.</p>
+          <div class="form-row">
+            <input id="loginEmail" placeholder="Email" value="customer@example.com" />
+            <input id="loginPassword" placeholder="Password" type="password" value="change-me-customer" />
+          </div>
+          <div class="form-row">
+            <button id="loginBtn">Login</button>
+          </div>
+          <p class="muted small">No account? <button id="switchToRegisterBtn" class="text-link-btn" type="button">Create one</button></p>
+        </div>
+      </section>
+
+      <section class="page" id="page-register">
+        <div class="panel auth-panel">
+          <h1>Create Account</h1>
+          <p class="muted">Create your customer account to start shopping.</p>
+          <div class="form-row">
+            <input id="registerEmail" placeholder="Email" />
+            <input id="registerPassword" placeholder="Password (min 6 chars)" type="password" />
+          </div>
+          <div class="form-row">
+            <button id="registerBtn" type="button">Create account</button>
+          </div>
+          <p class="muted small">Have an account? <button id="switchToLoginBtn" class="text-link-btn" type="button">Sign in</button></p>
+        </div>
       </section>
 
       <section class="page" id="page-catalog">
@@ -88,10 +111,10 @@
         <div class="panel">
           <h1>Thank you for shopping with ShopCloud</h1>
           <p class="muted">
-            Your order <strong id="thankYouOrderId">—</strong> has been placed.
+            Your order <strong id="thankYouOrderId">-</strong> has been placed.
           </p>
           <p class="muted">
-            Your invoice will be sent shortly to <strong id="thankYouEmail">—</strong>.
+            Your invoice will be sent shortly to <strong id="thankYouEmail">-</strong>.
           </p>
           <div class="form-row">
             <button id="continueShoppingBtn" type="button">Continue shopping</button>
@@ -108,7 +131,7 @@
       </div>
       <p class="muted">Review your order, then place checkout.</p>
       <p class="muted" id="checkoutInvoiceHint">
-        Invoice email destination: <strong id="checkoutEmailHint">—</strong>
+        Invoice email destination: <strong id="checkoutEmailHint">-</strong>
       </p>
       <div id="checkoutSummary" class="checkout-summary"></div>
       <button id="checkoutBtn" type="button">Place Order</button>

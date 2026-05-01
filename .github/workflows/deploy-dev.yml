@@ -119,13 +119,22 @@ jobs:
       - name: Apply Kubernetes manifests (exclude app secrets)
         run: |
           for f in k8s/*.yaml; do
-            if [ "$(basename "$f")" = "app-secrets.yaml" ]; then
+            if [ "$(basename "$f")" = "app-secrets.yaml" ] || [ "$(basename "$f")" = "nginx-frontend-configmap.yaml" ]; then
               echo "Skipping $f (managed outside CI)"
               continue
             fi
             # Server-side apply avoids stale last-applied annotation merge conflicts.
             kubectl apply --server-side --force-conflicts --validate=false -f "$f"
           done
+
+      - name: Sync frontend ConfigMap from frontend source files
+        run: |
+          kubectl create configmap nginx-frontend \
+            --from-file=default.conf=k8s/nginx-default.conf \
+            --from-file=index.html=services/frontend/public/index.html \
+            --from-file=app.js=services/frontend/public/app.js \
+            --from-file=styles.css=services/frontend/public/styles.css \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Restart nginx to pick up ConfigMap UI updates
         run: |

@@ -57,6 +57,19 @@ jobs:
         run: |
           aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
 
+      - name: Sync frontend ConfigMap from frontend source files
+        run: |
+          kubectl create configmap nginx-frontend \
+            --from-file=default.conf=k8s/nginx-default.conf \
+            --from-file=index.html=services/frontend/public/index.html \
+            --from-file=app.js=services/frontend/public/app.js \
+            --from-file=styles.css=services/frontend/public/styles.css \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Restart nginx after frontend config update
+        run: |
+          kubectl rollout restart deployment/nginx
+
       - name: Deploy image tag to production
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -97,6 +110,7 @@ jobs:
 
       - name: Verify post-deployment health
         run: |
+          kubectl rollout status deployment/nginx --timeout=900s
           kubectl rollout status deployment/catalog --timeout=900s
           kubectl rollout status deployment/cart --timeout=900s
           kubectl rollout status deployment/checkout --timeout=900s

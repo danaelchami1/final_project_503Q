@@ -93,7 +93,7 @@ function updateCheckoutEmailHint() {
     return;
   }
   const email = session.user && typeof session.user.email === "string" ? session.user.email : "";
-  hint.textContent = email || "— (sign in with an email)";
+  hint.textContent = email || "- (sign in with an email)";
 }
 
 function switchPage(page) {
@@ -243,6 +243,11 @@ document.querySelectorAll(".nav-btn").forEach((button) => {
   });
 });
 
+document.getElementById("goLoginBtn").addEventListener("click", () => switchPage("login"));
+document.getElementById("goRegisterBtn").addEventListener("click", () => switchPage("register"));
+document.getElementById("switchToRegisterBtn").addEventListener("click", () => switchPage("register"));
+document.getElementById("switchToLoginBtn").addEventListener("click", () => switchPage("login"));
+
 async function syncSessionFromAuthMe(accessToken) {
   if (!accessToken) {
     return;
@@ -259,8 +264,8 @@ async function syncSessionFromAuthMe(accessToken) {
 
 document.getElementById("loginBtn").addEventListener("click", async () => {
   try {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
     const data = await request("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -280,8 +285,8 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 
 document.getElementById("registerBtn").addEventListener("click", async () => {
   try {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
+    const email = document.getElementById("registerEmail").value.trim();
+    const password = document.getElementById("registerPassword").value;
     if (!email || !password) {
       showToast("Enter email and password (min 6 characters).", "error");
       return;
@@ -292,12 +297,12 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
       body: JSON.stringify({ email, password, role: "customer" })
     });
     if (!data.accessToken) {
-      showToast("Account created — please log in.", "info");
+      showToast("Account created - please log in.", "info");
       return;
     }
     setSession(data.user, data.accessToken);
     switchPage("catalog");
-    showToast("Account created — you are signed in");
+    showToast("Account created - you are signed in");
     await syncSessionFromAuthMe(data.accessToken);
     const products = await request("/api/products");
     renderProducts(products);
@@ -410,7 +415,7 @@ document.getElementById("checkoutBtn").addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({})
     });
-    const orderId = data.orderId || "—";
+    const orderId = data.orderId || "-";
     const email = session.user?.email || "your email";
     thankYouOrderId.textContent = orderId;
     thankYouEmail.textContent = email;
