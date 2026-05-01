@@ -5,8 +5,8 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #fff5fb;
-  color: #6b1f3d;
+  background: #f4f7ff;
+  color: #1a2a4a;
 }
 
 .topbar {
@@ -18,7 +18,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 24px;
-  background: linear-gradient(90deg, #ff6fb7, #ff4f9a);
+  background: linear-gradient(90deg, #1d4ed8, #2563eb);
   color: #fff;
 }
 
@@ -40,21 +40,21 @@ button {
   padding: 10px 14px;
   font-weight: 600;
   cursor: pointer;
-  background: linear-gradient(90deg, #ff7fb3, #ff5fa0);
+  background: linear-gradient(90deg, #2563eb, #1d4ed8);
   color: #fff;
 }
 
 .nav-btn.active {
-  background: linear-gradient(90deg, #ff9ac7, #ff7fb3);
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
 }
 
 .ghost-btn {
-  background: #ffe6f2;
-  color: #6b1f3d;
+  background: #e7efff;
+  color: #1d4ed8;
 }
 
 .danger-btn {
-  background: #ff5f8a;
+  background: #dc2626;
 }
 
 .session {
@@ -66,7 +66,7 @@ button {
 .badge {
   display: inline-block;
   border-radius: 999px;
-  background: #ff5fa0;
+  background: #1d4ed8;
   padding: 6px 10px;
   font-size: 13px;
 }
@@ -81,7 +81,7 @@ button {
   padding: 0 6px;
   border-radius: 999px;
   background: #ffffff;
-  color: #6b1f3d;
+  color: #1d4ed8;
   font-size: 12px;
 }
 
@@ -101,11 +101,11 @@ button {
 
 .panel {
   background: #fff;
-  border: 1px solid #f2c4e7;
+  border: 1px solid #dbe5ff;
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 18px;
-  box-shadow: 0 8px 24px rgba(255, 79, 154, 0.12);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
 }
 
 .hero-strip {
@@ -116,8 +116,8 @@ button {
 }
 
 .hero-card {
-  background: linear-gradient(135deg, #ffffff, #ffe6f2);
-  border: 1px solid #ffd0e8;
+  background: linear-gradient(135deg, #ffffff, #eaf1ff);
+  border: 1px solid #d8e5ff;
   border-radius: 14px;
   padding: 12px;
 }
@@ -128,7 +128,7 @@ button {
 
 .hero-card p {
   margin: 0;
-  color: #a14b6f;
+  color: #475569;
 }
 
 .form-row {
@@ -141,7 +141,7 @@ button {
 input {
   flex: 1;
   min-width: 220px;
-  border: 1px solid #e8b7dd;
+  border: 1px solid #cddcff;
   border-radius: 10px;
   padding: 10px;
   font-size: 14px;
@@ -155,10 +155,10 @@ input {
 
 .product-card {
   background: #fff;
-  border: 1px solid #f2c4e7;
+  border: 1px solid #dbe5ff;
   border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 8px 20px rgba(255, 79, 154, 0.12);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
 }
 
 .product-card h3 {
@@ -166,7 +166,7 @@ input {
 }
 
 .muted {
-  color: #a14b6f;
+  color: #51607d;
 }
 
 .muted.small {
@@ -177,14 +177,14 @@ input {
 .checkout-internal-hint {
   max-width: 42rem;
   padding: 10px 12px;
-  border-left: 4px solid #ff4f9a;
-  background: #fff8fc;
+  border-left: 4px solid #2563eb;
+  background: #f2f7ff;
   border-radius: 0 8px 8px 0;
 }
 
 .cart-list {
   margin-top: 12px;
-  border: 1px solid #ffd0e8;
+  border: 1px solid #dbe5ff;
   border-radius: 14px;
   background: #ffffff;
   overflow: hidden;
@@ -195,7 +195,7 @@ input {
   grid-template-columns: 1fr 120px 120px;
   gap: 10px;
   padding: 12px 14px;
-  border-bottom: 1px solid #ffe6f2;
+  border-bottom: 1px solid #edf2ff;
   align-items: center;
 }
 
@@ -205,7 +205,7 @@ input {
 
 .cart-row.header {
   font-weight: 700;
-  background: #fff5fb;
+  background: #eef4ff;
 }
 
 .toast {
@@ -218,9 +218,9 @@ input {
   padding: 12px 14px;
   border-radius: 12px;
   background: #ffffff;
-  border: 1px solid #ffd0e8;
-  box-shadow: 0 10px 28px rgba(255, 79, 154, 0.18);
-  color: #6b1f3d;
+  border: 1px solid #dbe5ff;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.18);
+  color: #1a2a4a;
   display: none;
 }
 
@@ -229,8 +229,8 @@ input {
 }
 
 .toast-error {
-  border-color: #ffb3c7;
-  background: #fff0f4;
+  border-color: #fecaca;
+  background: #fff1f2;
 }
 
 .floating-cart-btn {
@@ -240,7 +240,7 @@ input {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(90deg, #ff7fb3, #ff5fa0);
-  box-shadow: 0 10px 28px rgba(255, 79, 154, 0.28);
+  background: linear-gradient(90deg, #2563eb, #1d4ed8);
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.3);
   font-size: 22px;
 }

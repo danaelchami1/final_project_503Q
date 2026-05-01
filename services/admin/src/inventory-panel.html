@@ -1,177 +1,276 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ShopCloud — Internal ops (warehouse)</title>
+    <title>ShopCloud Admin Console</title>
     <style>
       :root {
-        font-family: system-ui, sans-serif;
-        color: #1a1a2e;
-        background: #f4f6fb;
+        --bg: #f5f8ff;
+        --surface: #ffffff;
+        --surface-soft: #eff4ff;
+        --text: #14213d;
+        --muted: #51607d;
+        --primary: #2563eb;
+        --primary-strong: #1d4ed8;
+        --danger: #dc2626;
+        --border: #dbe5ff;
+      }
+      * {
+        box-sizing: border-box;
       }
       body {
-        max-width: 960px;
+        margin: 0;
+        font-family: Inter, Segoe UI, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .shell {
+        max-width: 1120px;
         margin: 0 auto;
-        padding: 24px;
+        padding: 24px 18px 36px;
       }
-      h1 {
-        font-size: 1.35rem;
-      }
-      .banner {
-        background: #1a1a2e;
+      .topbar {
+        background: linear-gradient(120deg, var(--primary), var(--primary-strong));
         color: #fff;
-        padding: 12px 16px;
-        border-radius: 8px;
+        border-radius: 14px;
+        padding: 16px 18px;
         margin-bottom: 20px;
-        font-size: 0.9rem;
       }
-      label {
-        display: block;
-        font-weight: 600;
-        margin: 12px 0 4px;
+      .topbar h1 {
+        margin: 0 0 6px;
+        font-size: 1.4rem;
       }
-      input[type="text"],
-      input[type="password"],
-      input[type="number"] {
+      .topbar p {
+        margin: 0;
+        opacity: 0.95;
+      }
+      .status {
+        margin-top: 10px;
+        font-size: 0.92rem;
+      }
+      .status.ok {
+        color: #0f9d58;
+      }
+      .status.err {
+        color: #b91c1c;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 1.08rem;
+      }
+      .muted {
+        color: var(--muted);
+        margin: 0 0 10px;
+      }
+      .grid {
+        display: grid;
+        gap: 10px;
+      }
+      .grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      input {
         width: 100%;
-        max-width: 520px;
-        padding: 8px 10px;
-        border: 1px solid #ccd;
-        border-radius: 6px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
       }
       button {
-        margin: 6px 6px 6px 0;
-        padding: 8px 14px;
-        border-radius: 6px;
-        border: none;
-        background: #3d5a80;
-        color: #fff;
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
         cursor: pointer;
+        background: var(--primary);
+        color: #fff;
+      }
+      button:hover {
+        background: var(--primary-strong);
       }
       button.secondary {
-        background: #6c757d;
+        background: #64748b;
       }
       button.danger {
-        background: #a82039;
+        background: var(--danger);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .session-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 0.84rem;
+        background: var(--surface-soft);
       }
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 16px;
-        background: #fff;
-        border-radius: 8px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       }
       th,
       td {
-        padding: 10px 12px;
         text-align: left;
-        border-bottom: 1px solid #e8e8ee;
+        padding: 10px 12px;
+        border-bottom: 1px solid #edf2ff;
+        vertical-align: top;
       }
       th {
-        background: #eef2f9;
+        background: var(--surface-soft);
+        font-weight: 700;
       }
-      .muted {
-        color: #555;
-        font-size: 0.88rem;
+      td .inline {
+        display: inline-flex;
+        gap: 6px;
       }
-      .grid {
-        display: grid;
-        gap: 8px;
-        max-width: 520px;
+      .stock-input {
+        width: 84px;
       }
-      #status {
-        margin-top: 12px;
-        font-size: 0.9rem;
+      @media (max-width: 900px) {
+        .grid.two {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="banner">
-      <strong>Internal use only.</strong> Reach this UI only from your private network (AWS Client VPN with
-      <strong>device certificate</strong>, bastion, or internal load balancer). Staff sign-in below adds
-      <strong>Cognito TOTP MFA</strong> (architecture: certificate + MFA).
-    </div>
-    <h1>Internal ops — inventory &amp; orders</h1>
-    <p class="muted">
-      This page is <strong>not</strong> the public storefront. Prefer <strong>Sign in (Cognito admins + MFA)</strong>
-      to fill your access token, or paste a Bearer token from the admins pool / local dev.
-    </p>
-
-    <h2 style="margin-top: 8px; font-size: 1.05rem">Sign in (Cognito admins + MFA)</h2>
-    <p class="muted" style="margin-top: 4px">
-      Requires an admin user in the <strong>admins</strong> Cognito pool with <strong>authenticator app MFA</strong>
-      already enrolled (AWS Console → Cognito → Users → MFA). First-time enrollment is done in the console when the
-      pool has MFA <code>ON</code>.
-    </p>
-    <div class="grid" style="max-width: 520px">
-      <input id="staffEmail" type="text" autocomplete="username" placeholder="admin email" />
-      <input id="staffPassword" type="password" autocomplete="current-password" placeholder="password" />
-      <div id="mfaBlock" style="display: none">
-        <label for="staffMfa">Authenticator code (6 digits)</label>
-        <input id="staffMfa" type="text" inputmode="numeric" maxlength="8" placeholder="123456" />
-        <input type="hidden" id="mfaSession" value="" />
-        <input type="hidden" id="mfaChallenge" value="" />
+    <div class="shell">
+      <div class="topbar">
+        <h1>ShopCloud Admin Console</h1>
+        <p>Private operations dashboard for inventory and orders. Access is restricted to internal path + admin auth.</p>
       </div>
-      <div>
-        <button type="button" id="staffLoginBtn">Sign in</button>
-        <button type="button" id="staffMfaBtn" class="secondary" style="display: none">Submit MFA</button>
-      </div>
+
+      <section class="panel">
+        <h2>Admin Sign-in</h2>
+        <p class="muted">No manual token paste needed. Sign in once and the session token is used automatically.</p>
+        <div class="grid two">
+          <input id="staffEmail" type="text" autocomplete="username" placeholder="admin email" />
+          <input id="staffPassword" type="password" autocomplete="current-password" placeholder="password" />
+        </div>
+        <div id="mfaBlock" class="grid two" style="display: none; margin-top: 10px">
+          <input id="staffMfa" type="text" inputmode="numeric" maxlength="8" placeholder="Authenticator code (6 digits)" />
+          <input type="hidden" id="mfaSession" value="" />
+        </div>
+        <div class="row">
+          <button type="button" id="staffLoginBtn">Sign in</button>
+          <button type="button" id="staffMfaBtn" class="secondary" style="display: none">Submit MFA</button>
+          <button type="button" id="logoutBtn" class="secondary" disabled>Logout</button>
+          <span id="sessionState" class="session-chip">Not signed in</span>
+        </div>
+        <div id="status" class="status"></div>
+      </section>
+
+      <section class="panel">
+        <div class="row" style="justify-content: space-between">
+          <h2 style="margin: 0">Inventory</h2>
+          <button type="button" id="loadBtn">Refresh inventory</button>
+        </div>
+
+        <div class="grid two" style="margin: 12px 0">
+          <input id="newId" type="text" placeholder="Product ID (e.g. p-2001)" />
+          <input id="newName" type="text" placeholder="Name" />
+          <input id="newCategory" type="text" placeholder="Category" />
+          <input id="newPrice" type="number" step="0.01" min="0" placeholder="Price" />
+          <input id="newStock" type="number" min="0" step="1" placeholder="Stock (integer)" />
+        </div>
+        <button type="button" id="addBtn">Create product</button>
+
+        <table style="margin-top: 12px">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <div class="row" style="justify-content: space-between">
+          <h2 style="margin: 0">Orders (read-only)</h2>
+          <button type="button" id="loadOrdersBtn" class="secondary">Refresh orders</button>
+        </div>
+        <table style="margin-top: 12px">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>User</th>
+              <th>Email</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Items</th>
+            </tr>
+          </thead>
+          <tbody id="ordersRows"></tbody>
+        </table>
+      </section>
     </div>
-
-    <label for="token">Admin access token (Bearer)</label>
-    <input id="token" type="password" autocomplete="off" placeholder="eyJra…" />
-
-    <div style="margin-top: 12px">
-      <button type="button" id="loadBtn">Refresh inventory</button>
-    </div>
-
-    <h2 style="margin-top: 28px; font-size: 1.1rem">Add product</h2>
-    <div class="grid">
-      <input id="newId" type="text" placeholder="id e.g. p-2001" />
-      <input id="newName" type="text" placeholder="name" />
-      <input id="newCategory" type="text" placeholder="category" />
-      <input id="newPrice" type="number" step="0.01" min="0" placeholder="price" />
-      <input id="newStock" type="number" min="0" step="1" placeholder="stock (integer)" />
-      <button type="button" id="addBtn">Create product</button>
-    </div>
-
-    <div id="status" class="muted"></div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Category</th>
-          <th>Price</th>
-          <th>Stock</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-
-    <h2 style="margin-top: 36px; font-size: 1.1rem; padding-top: 20px; border-top: 2px solid #c5ccd8">Orders (read-only)</h2>
-    <p class="muted">Persisted checkout orders from the database (proxied through this admin service).</p>
-    <button type="button" id="loadOrdersBtn" class="secondary">Refresh orders</button>
-    <table style="margin-top: 12px">
-      <thead>
-        <tr>
-          <th>Order ID</th>
-          <th>User</th>
-          <th>Email</th>
-          <th>Total</th>
-          <th>Status</th>
-          <th>Items (summary)</th>
-        </tr>
-      </thead>
-      <tbody id="ordersRows"></tbody>
-    </table>
 
     <script>
+      const authState = {
+        token: "",
+        email: ""
+      };
+
+      function setStatus(msg, ok) {
+        const el = document.getElementById("status");
+        el.textContent = msg;
+        el.className = "status " + (ok ? "ok" : "err");
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function setSessionUi() {
+        const chip = document.getElementById("sessionState");
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (!authState.token) {
+          chip.textContent = "Not signed in";
+          logoutBtn.disabled = true;
+          return;
+        }
+        chip.textContent = "Signed in: " + (authState.email || "admin");
+        logoutBtn.disabled = false;
+      }
+
+      function authHeader() {
+        if (!authState.token) return {};
+        return { Authorization: "Bearer " + authState.token };
+      }
+
       async function staffFetch(path, body) {
         const res = await fetch(path, {
           method: "POST",
@@ -189,101 +288,13 @@
         return data;
       }
 
-      document.getElementById("staffLoginBtn").addEventListener("click", async () => {
-        const email = document.getElementById("staffEmail").value.trim();
-        const password = document.getElementById("staffPassword").value;
-        const mfaBlock = document.getElementById("mfaBlock");
-        const mfaBtn = document.getElementById("staffMfaBtn");
-        const loginBtn = document.getElementById("staffLoginBtn");
-        setStatus("Signing in…", true);
-        try {
-          const data = await staffFetch("/cognito-admin/login", { email, password });
-          if (data.accessToken) {
-            document.getElementById("token").value = data.accessToken;
-            mfaBlock.style.display = "none";
-            mfaBtn.style.display = "none";
-            loginBtn.style.display = "inline-block";
-            document.getElementById("mfaSession").value = "";
-            setStatus("Token filled — you can refresh inventory.", true);
-            return;
-          }
-          if (data.challenge === "SOFTWARE_TOKEN_MFA" && data.session) {
-            document.getElementById("mfaSession").value = data.session;
-            document.getElementById("mfaChallenge").value = data.challenge || "SOFTWARE_TOKEN_MFA";
-            mfaBlock.style.display = "block";
-            mfaBtn.style.display = "inline-block";
-            loginBtn.style.display = "none";
-            setStatus("Enter the 6-digit code from your authenticator app, then click Submit MFA.", true);
-            return;
-          }
-          if (data.challenge === "MFA_SETUP") {
-            setStatus(
-              "Cognito requires MFA enrollment first. In AWS Console: Cognito → your admins user pool → Users → select this user → MFA → Associate an MFA device. Then sign in again.",
-              false
-            );
-            return;
-          }
-          setStatus("Unexpected challenge: " + (data.challenge || JSON.stringify(data)), false);
-        } catch (e) {
-          setStatus(e.message || "Sign-in failed", false);
-        }
-      });
-
-      document.getElementById("staffMfaBtn").addEventListener("click", async () => {
-        const email = document.getElementById("staffEmail").value.trim();
-        const session = document.getElementById("mfaSession").value;
-        const mfaCode = document.getElementById("staffMfa").value.trim();
-        const challengeName = document.getElementById("mfaChallenge").value || "SOFTWARE_TOKEN_MFA";
-        setStatus("Verifying MFA…", true);
-        try {
-          const data = await staffFetch("/cognito-admin/respond-mfa", {
-            email,
-            session,
-            mfaCode,
-            challengeName
-          });
-          if (data.accessToken) {
-            document.getElementById("token").value = data.accessToken;
-            document.getElementById("mfaBlock").style.display = "none";
-            document.getElementById("staffMfaBtn").style.display = "none";
-            document.getElementById("staffLoginBtn").style.display = "inline-block";
-            setStatus("Token filled — you can refresh inventory.", true);
-            return;
-          }
-          if (data.challenge && data.session) {
-            document.getElementById("mfaSession").value = data.session;
-            document.getElementById("mfaChallenge").value = data.challenge;
-            setStatus("Additional step required: " + data.challenge, false);
-            return;
-          }
-          setStatus("Unexpected response after MFA.", false);
-        } catch (e) {
-          setStatus(e.message || "MFA failed", false);
-        }
-      });
-
-      function authHeader() {
-        let t = document.getElementById("token").value.trim();
-        if (!t) return {};
-        if (!/^Bearer\s/i.test(t)) t = "Bearer " + t;
-        return { Authorization: t };
-      }
-
-      function setStatus(msg, ok) {
-        const el = document.getElementById("status");
-        el.textContent = msg;
-        el.style.color = ok ? "#0a6" : "#a20";
-      }
-
       async function api(path, options) {
-        const res = await fetch(path, {
-          ...options,
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeader(),
-            ...(options && options.headers ? options.headers : {})
-          }
-        });
+        const headers = {
+          "Content-Type": "application/json",
+          ...authHeader(),
+          ...(options && options.headers ? options.headers : {})
+        };
+        const res = await fetch(path, { ...(options || {}), headers });
         const text = await res.text();
         let body = {};
         try {
@@ -295,8 +306,79 @@
         return body;
       }
 
+      function requireSignedIn() {
+        if (authState.token) return true;
+        setStatus("Please sign in first.", false);
+        return false;
+      }
+
+      document.getElementById("staffLoginBtn").addEventListener("click", async () => {
+        const email = document.getElementById("staffEmail").value.trim();
+        const password = document.getElementById("staffPassword").value;
+        setStatus("Signing in...", true);
+        try {
+          const data = await staffFetch("/cognito-admin/login", { email, password });
+          if (data.accessToken) {
+            authState.token = data.accessToken;
+            authState.email = email;
+            document.getElementById("mfaBlock").style.display = "none";
+            document.getElementById("staffMfaBtn").style.display = "none";
+            setSessionUi();
+            setStatus("Signed in successfully.", true);
+            await loadInventory();
+            return;
+          }
+          if (data.challenge === "SOFTWARE_TOKEN_MFA" && data.session) {
+            document.getElementById("mfaSession").value = data.session;
+            document.getElementById("mfaBlock").style.display = "grid";
+            document.getElementById("staffMfaBtn").style.display = "inline-block";
+            setStatus("Enter authenticator code, then submit MFA.", true);
+            return;
+          }
+          setStatus("Unexpected challenge response.", false);
+        } catch (e) {
+          setStatus(e.message || "Sign-in failed", false);
+        }
+      });
+
+      document.getElementById("staffMfaBtn").addEventListener("click", async () => {
+        const email = document.getElementById("staffEmail").value.trim();
+        const session = document.getElementById("mfaSession").value;
+        const mfaCode = document.getElementById("staffMfa").value.trim();
+        setStatus("Verifying MFA...", true);
+        try {
+          const data = await staffFetch("/cognito-admin/respond-mfa", {
+            email,
+            session,
+            mfaCode,
+            challengeName: "SOFTWARE_TOKEN_MFA"
+          });
+          if (!data.accessToken) {
+            setStatus("MFA response did not include token.", false);
+            return;
+          }
+          authState.token = data.accessToken;
+          authState.email = email;
+          document.getElementById("mfaBlock").style.display = "none";
+          document.getElementById("staffMfaBtn").style.display = "none";
+          setSessionUi();
+          setStatus("MFA verified. Signed in.", true);
+          await loadInventory();
+        } catch (e) {
+          setStatus(e.message || "MFA failed", false);
+        }
+      });
+
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        authState.token = "";
+        authState.email = "";
+        setSessionUi();
+        setStatus("Signed out.", true);
+      });
+
       async function loadInventory() {
-        setStatus("Loading…", true);
+        if (!requireSignedIn()) return;
+        setStatus("Loading inventory...", true);
         const data = await api("/admin/products", { method: "GET" });
         const tbody = document.getElementById("rows");
         tbody.innerHTML = "";
@@ -311,35 +393,28 @@
             escapeHtml(p.category) +
             "</td><td>" +
             Number(p.price).toFixed(2) +
-            '</td><td><input type="number" min="0" step="1" data-stock-id="' +
+            '</td><td><input class="stock-input" type="number" min="0" step="1" data-stock-id="' +
             escapeHtml(p.id) +
             '" value="' +
             Number(p.stock) +
-            '" style="width:5rem"/></td><td><button type="button" class="secondary" data-save="' +
+            '"/></td><td><span class="inline"><button type="button" class="secondary" data-save="' +
             escapeHtml(p.id) +
-            '">Save stock</button> <button type="button" class="danger" data-del="' +
+            '">Save</button><button type="button" class="danger" data-del="' +
             escapeHtml(p.id) +
-            '">Delete</button></td>';
+            '">Delete</button></span></td>';
           tbody.appendChild(tr);
         }
-        setStatus("Loaded " + data.length + " products.", true);
         tbody.querySelectorAll("[data-save]").forEach((btn) => {
           btn.addEventListener("click", () => saveStock(btn.getAttribute("data-save")));
         });
         tbody.querySelectorAll("[data-del]").forEach((btn) => {
           btn.addEventListener("click", () => delProduct(btn.getAttribute("data-del")));
         });
-      }
-
-      function escapeHtml(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
+        setStatus("Loaded " + data.length + " products.", true);
       }
 
       async function saveStock(id) {
+        if (!requireSignedIn()) return;
         const input = document.querySelector('input[data-stock-id="' + id.replace(/"/g, "") + '"]');
         const stock = Number(input && input.value);
         if (!Number.isInteger(stock) || stock < 0) {
@@ -359,6 +434,7 @@
       }
 
       async function delProduct(id) {
+        if (!requireSignedIn()) return;
         if (!confirm("Delete product " + id + "?")) return;
         try {
           await api("/admin/products/" + encodeURIComponent(id), { method: "DELETE" });
@@ -369,27 +445,20 @@
         }
       }
 
-      function summarizeItems(items) {
-        if (!Array.isArray(items)) return "—";
-        try {
-          return items
-            .map((i) => (i.productId || "?") + "×" + (i.quantity ?? "?"))
-            .join(", ");
-        } catch {
-          return "—";
-        }
-      }
-
       async function loadOrders() {
-        setStatus("Loading orders…", true);
+        if (!requireSignedIn()) return;
+        setStatus("Loading orders...", true);
         const data = await api("/admin/orders", { method: "GET" });
         const tbody = document.getElementById("ordersRows");
         tbody.innerHTML = "";
         if (!Array.isArray(data) || data.length === 0) {
-          setStatus("No orders returned.", true);
+          setStatus("No orders found.", true);
           return;
         }
         for (const o of data) {
+          const items = Array.isArray(o.items)
+            ? o.items.map((i) => (i.productId || "?") + "x" + (i.quantity ?? "?")).join(", ")
+            : "—";
           const tr = document.createElement("tr");
           tr.innerHTML =
             "<td>" +
@@ -403,7 +472,7 @@
             "</td><td>" +
             escapeHtml(o.status || "") +
             "</td><td>" +
-            escapeHtml(summarizeItems(o.items)) +
+            escapeHtml(items) +
             "</td>";
           tbody.appendChild(tr);
         }
@@ -419,13 +488,14 @@
       });
 
       document.getElementById("addBtn").addEventListener("click", async () => {
+        if (!requireSignedIn()) return;
         const id = document.getElementById("newId").value.trim();
         const name = document.getElementById("newName").value.trim();
         const category = document.getElementById("newCategory").value.trim();
         const price = Number(document.getElementById("newPrice").value);
         const stock = Number(document.getElementById("newStock").value);
         if (!id || !name || !category || !Number.isFinite(price) || !Number.isInteger(stock)) {
-          setStatus("Fill id, name, category, numeric price, integer stock.", false);
+          setStatus("Fill all fields with valid values.", false);
           return;
         }
         try {

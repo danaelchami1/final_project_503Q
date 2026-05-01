@@ -565,8 +565,8 @@ data:
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #fff5fb;
-      color: #6b1f3d;
+      background: #f4f7ff;
+      color: #1a2a4a;
     }
 
     .topbar {
@@ -578,7 +578,7 @@ data:
       justify-content: space-between;
       gap: 12px;
       padding: 14px 24px;
-      background: linear-gradient(90deg, #ff6fb7, #ff4f9a);
+      background: linear-gradient(90deg, #1d4ed8, #2563eb);
       color: #fff;
     }
 
@@ -600,17 +600,17 @@ data:
       padding: 10px 14px;
       font-weight: 600;
       cursor: pointer;
-      background: linear-gradient(90deg, #ff7fb3, #ff5fa0);
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
       color: #fff;
     }
 
     .nav-btn.active {
-      background: linear-gradient(90deg, #ff9ac7, #ff7fb3);
+      background: linear-gradient(90deg, #3b82f6, #2563eb);
     }
 
     .ghost-btn {
       background: #ffe6f2;
-      color: #6b1f3d;
+      color: #1d4ed8;
     }
 
     .danger-btn {
@@ -626,7 +626,7 @@ data:
     .badge {
       display: inline-block;
       border-radius: 999px;
-      background: #ff5fa0;
+      background: #1d4ed8;
       padding: 6px 10px;
       font-size: 13px;
     }
@@ -641,7 +641,7 @@ data:
       padding: 0 6px;
       border-radius: 999px;
       background: #ffffff;
-      color: #6b1f3d;
+      color: #1d4ed8;
       font-size: 12px;
     }
 
@@ -677,7 +677,7 @@ data:
 
     .hero-card {
       background: linear-gradient(135deg, #ffffff, #ffe6f2);
-      border: 1px solid #ffd0e8;
+      border: 1px solid #d8e5ff;
       border-radius: 14px;
       padding: 12px;
     }
@@ -737,14 +737,14 @@ data:
     .checkout-internal-hint {
       max-width: 42rem;
       padding: 10px 12px;
-      border-left: 4px solid #ff4f9a;
+      border-left: 4px solid #2563eb;
       background: #fff8fc;
       border-radius: 0 8px 8px 0;
     }
 
     .cart-list {
       margin-top: 12px;
-      border: 1px solid #ffd0e8;
+      border: 1px solid #dbe5ff;
       border-radius: 14px;
       background: #ffffff;
       overflow: hidden;
@@ -765,7 +765,7 @@ data:
 
     .cart-row.header {
       font-weight: 700;
-      background: #fff5fb;
+      background: #eef4ff;
     }
 
     .toast {
@@ -778,9 +778,9 @@ data:
       padding: 12px 14px;
       border-radius: 12px;
       background: #ffffff;
-      border: 1px solid #ffd0e8;
+      border: 1px solid #dbe5ff;
       box-shadow: 0 10px 28px rgba(255, 79, 154, 0.18);
-      color: #6b1f3d;
+      color: #1a2a4a;
       display: none;
     }
 
@@ -800,7 +800,7 @@ data:
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      background: linear-gradient(90deg, #ff7fb3, #ff5fa0);
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
       box-shadow: 0 10px 28px rgba(255, 79, 154, 0.28);
       font-size: 22px;
     }
