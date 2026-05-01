@@ -271,10 +271,11 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
-    setSession(data.user, data.accessToken);
+    const bearerToken = data.idToken || data.accessToken;
+    setSession(data.user, bearerToken);
     switchPage("catalog");
     showToast("Signed in");
-    await syncSessionFromAuthMe(data.accessToken);
+    await syncSessionFromAuthMe(bearerToken);
 
     const products = await request("/api/products");
     renderProducts(products);
@@ -296,14 +297,15 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, role: "customer" })
     });
-    if (!data.accessToken) {
+    const bearerToken = data.idToken || data.accessToken;
+    if (!bearerToken) {
       showToast("Account created - please log in.", "info");
       return;
     }
-    setSession(data.user, data.accessToken);
+    setSession(data.user, bearerToken);
     switchPage("catalog");
     showToast("Account created - you are signed in");
-    await syncSessionFromAuthMe(data.accessToken);
+    await syncSessionFromAuthMe(bearerToken);
     const products = await request("/api/products");
     renderProducts(products);
   } catch (error) {

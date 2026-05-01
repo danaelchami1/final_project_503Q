@@ -8,6 +8,7 @@ const app = express();
 const port = Number(process.env.PORT) || 3006;
 const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3005";
 const checkoutServiceUrl = process.env.CHECKOUT_SERVICE_URL || "http://127.0.0.1:3003";
+const catalogServiceUrl = process.env.CATALOG_SERVICE_URL || "http://127.0.0.1:3001";
 
 let inventoryPanelHtml = "";
 try {
@@ -49,24 +50,6 @@ async function proxyJsonToAuth(authPath, req, res) {
 app.post("/cognito-admin/login", (req, res) => proxyJsonToAuth("/auth/cognito-admin/login", req, res));
 
 app.post("/cognito-admin/respond-mfa", (req, res) => proxyJsonToAuth("/auth/cognito-admin/respond-mfa", req, res));
-
-// MVP in-memory inventory store managed by admins.
-const inventory = [
-  {
-    id: "p-1001",
-    name: "ShopCloud Hoodie",
-    category: "apparel",
-    price: 59.99,
-    stock: 120
-  },
-  {
-    id: "p-1002",
-    name: "Mechanical Keyboard",
-    category: "electronics",
-    price: 89.0,
-    stock: 45
-  }
-];
 
 function requestJson(url, options = {}) {
   return new Promise((resolve, reject) => {
@@ -182,66 +165,66 @@ app.get("/admin/orders", requireAdmin, async (req, res) => {
 });
 
 app.get("/admin/products", requireAdmin, (_req, res) => {
-  return res.status(200).json(inventory);
+  requestJson(`${catalogServiceUrl}/admin/products`)
+    .then((data) => res.status(200).json(data))
+    .catch((error) => {
+      const status = error.status || 500;
+      return res.status(status).json({
+        error: "Failed to load products from catalog",
+        details: error.body || error.message
+      });
+    });
 });
 
 app.post("/admin/products", requireAdmin, (req, res) => {
-  const { id, name, category, price, stock } = req.body || {};
-  if (!id || !name || !category || typeof price !== "number" || !Number.isInteger(stock)) {
-    return res.status(400).json({
-      error: "id, name, category, numeric price, and integer stock are required"
+  requestJson(`${catalogServiceUrl}/admin/products`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req.body || {})
+  })
+    .then((data) => res.status(201).json(data))
+    .catch((error) => {
+      const status = error.status || 500;
+      return res.status(status).json({
+        error: "Failed to add product in catalog",
+        details: error.body || error.message
+      });
     });
-  }
-
-  if (inventory.some((item) => item.id === id)) {
-    return res.status(409).json({
-      error: "Product id already exists"
-    });
-  }
-
-  const product = { id, name, category, price, stock };
-  inventory.push(product);
-
-  return res.status(201).json(product);
 });
 
 app.patch("/admin/products/:id/stock", requireAdmin, (req, res) => {
-  const { id } = req.params;
-  const { stock } = req.body || {};
-  if (!Number.isInteger(stock) || stock < 0) {
-    return res.status(400).json({
-      error: "stock must be a non-negative integer"
+  requestJson(`${catalogServiceUrl}/admin/products/${encodeURIComponent(req.params.id)}/stock`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req.body || {})
+  })
+    .then((data) => res.status(200).json(data))
+    .catch((error) => {
+      const status = error.status || 500;
+      return res.status(status).json({
+        error: "Failed to update product stock in catalog",
+        details: error.body || error.message
+      });
     });
-  }
-
-  const product = inventory.find((item) => item.id === id);
-  if (!product) {
-    return res.status(404).json({
-      error: "Product not found"
-    });
-  }
-
-  product.stock = stock;
-  return res.status(200).json(product);
 });
 
 app.delete("/admin/products/:id", requireAdmin, (req, res) => {
-  const { id } = req.params;
-  const index = inventory.findIndex((item) => item.id === id);
-  if (index === -1) {
-    return res.status(404).json({
-      error: "Product not found"
+  requestJson(`${catalogServiceUrl}/admin/products/${encodeURIComponent(req.params.id)}`, {
+    method: "DELETE"
+  })
+    .then((data) => res.status(200).json(data))
+    .catch((error) => {
+      const status = error.status || 500;
+      return res.status(status).json({
+        error: "Failed to delete product in catalog",
+        details: error.body || error.message
+      });
     });
-  }
-
-  const [deleted] = inventory.splice(index, 1);
-  return res.status(200).json({
-    deleted
-  });
 });
 
 app.listen(port, () => {
   console.log(`Admin service is running on port ${port}`);
   console.log(`Using AUTH_SERVICE_URL=${authServiceUrl}`);
   console.log(`Using CHECKOUT_SERVICE_URL=${checkoutServiceUrl}`);
+  console.log(`Using CATALOG_SERVICE_URL=${catalogServiceUrl}`);
 });
