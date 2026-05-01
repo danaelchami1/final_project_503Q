@@ -8,6 +8,8 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internal
     alb.ingress.kubernetes.io/target-type: ip
+    # Allow only VPC + Client VPN CIDR to reach the internal ALB listener.
+    alb.ingress.kubernetes.io/inbound-cidrs: 10.0.0.0/16,172.20.0.0/22
     alb.ingress.kubernetes.io/subnets: subnet-0d952dca4ad6ac138,subnet-056fd5e4798e25a3f
 spec:
   ingressClassName: alb

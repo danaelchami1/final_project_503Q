@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AdminsPoolPasswordMfaLogin",
+      "Effect": "Allow",
+      "Action": ["cognito-idp:InitiateAuth", "cognito-idp:RespondToAuthChallenge"],
+      "Resource": "arn:aws:cognito-idp:REGION:ACCOUNT_ID:userpool/ADMINS_USER_POOL_ID"
+    }
+  ]
+}

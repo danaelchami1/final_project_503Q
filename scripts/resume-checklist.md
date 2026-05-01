@@ -47,6 +47,6 @@ Expected: checkout returns an `orderId`.
 ## 6) Current preferred runtime settings
 
 - Keep `enable_secrets_architecture=true`.
-- Keep `enable_private_admin_path=false` until VPN certificate is issued.
+- Keep `enable_private_admin_path=false` until ACM has both VPN **server** and **client CA** ARNs (`infra/scripts/generate-client-vpn-certs.sh` + imports).
 - For stable local cluster capacity, keep only core deployments up when troubleshooting:
   - `catalog`, `cart`, `checkout`, `invoice-worker`.

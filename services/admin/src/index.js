@@ -27,6 +27,29 @@ app.get("/", (_req, res) => {
 
 app.use(express.json());
 
+async function proxyJsonToAuth(authPath, req, res) {
+  try {
+    const body = JSON.stringify(req.body || {});
+    const data = await requestJson(`${authServiceUrl}${authPath}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body
+    });
+    return res.status(200).json(data);
+  } catch (error) {
+    const status = error.status || 500;
+    const payload =
+      error.body && typeof error.body === "object" ? error.body : { error: error.message || "Proxy failed" };
+    return res.status(status).json(payload);
+  }
+}
+
+app.post("/cognito-admin/login", (req, res) => proxyJsonToAuth("/auth/cognito-admin/login", req, res));
+
+app.post("/cognito-admin/respond-mfa", (req, res) => proxyJsonToAuth("/auth/cognito-admin/respond-mfa", req, res));
+
 // MVP in-memory inventory store managed by admins.
 const inventory = [
   {

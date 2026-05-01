@@ -90,15 +90,36 @@
   </head>
   <body>
     <div class="banner">
-      <strong>Internal use only.</strong> Reach this UI only from your private network (VPN, bastion, or internal
-      load balancer). Do not expose port 3006 on a public load balancer.
+      <strong>Internal use only.</strong> Reach this UI only from your private network (AWS Client VPN with
+      <strong>device certificate</strong>, bastion, or internal load balancer). Staff sign-in below adds
+      <strong>Cognito TOTP MFA</strong> (architecture: certificate + MFA).
     </div>
     <h1>Internal ops — inventory &amp; orders</h1>
     <p class="muted">
-      This page is <strong>not</strong> the public storefront. Use an <strong>admin</strong> token (admins Cognito pool
-      or local <code>admin@example.com</code>), then paste the bearer access token below. Returns: adjust stock (PATCH)
-      or delete a SKU (DELETE).
+      This page is <strong>not</strong> the public storefront. Prefer <strong>Sign in (Cognito admins + MFA)</strong>
+      to fill your access token, or paste a Bearer token from the admins pool / local dev.
     </p>
+
+    <h2 style="margin-top: 8px; font-size: 1.05rem">Sign in (Cognito admins + MFA)</h2>
+    <p class="muted" style="margin-top: 4px">
+      Requires an admin user in the <strong>admins</strong> Cognito pool with <strong>authenticator app MFA</strong>
+      already enrolled (AWS Console → Cognito → Users → MFA). First-time enrollment is done in the console when the
+      pool has MFA <code>ON</code>.
+    </p>
+    <div class="grid" style="max-width: 520px">
+      <input id="staffEmail" type="text" autocomplete="username" placeholder="admin email" />
+      <input id="staffPassword" type="password" autocomplete="current-password" placeholder="password" />
+      <div id="mfaBlock" style="display: none">
+        <label for="staffMfa">Authenticator code (6 digits)</label>
+        <input id="staffMfa" type="text" inputmode="numeric" maxlength="8" placeholder="123456" />
+        <input type="hidden" id="mfaSession" value="" />
+        <input type="hidden" id="mfaChallenge" value="" />
+      </div>
+      <div>
+        <button type="button" id="staffLoginBtn">Sign in</button>
+        <button type="button" id="staffMfaBtn" class="secondary" style="display: none">Submit MFA</button>
+      </div>
+    </div>
 
     <label for="token">Admin access token (Bearer)</label>
     <input id="token" type="password" autocomplete="off" placeholder="eyJra…" />
@@ -151,6 +172,96 @@
     </table>
 
     <script>
+      async function staffFetch(path, body) {
+        const res = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body || {})
+        });
+        const text = await res.text();
+        let data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          data = { raw: text };
+        }
+        if (!res.ok) throw new Error(data.error || data.message || res.statusText || String(res.status));
+        return data;
+      }
+
+      document.getElementById("staffLoginBtn").addEventListener("click", async () => {
+        const email = document.getElementById("staffEmail").value.trim();
+        const password = document.getElementById("staffPassword").value;
+        const mfaBlock = document.getElementById("mfaBlock");
+        const mfaBtn = document.getElementById("staffMfaBtn");
+        const loginBtn = document.getElementById("staffLoginBtn");
+        setStatus("Signing in…", true);
+        try {
+          const data = await staffFetch("/cognito-admin/login", { email, password });
+          if (data.accessToken) {
+            document.getElementById("token").value = data.accessToken;
+            mfaBlock.style.display = "none";
+            mfaBtn.style.display = "none";
+            loginBtn.style.display = "inline-block";
+            document.getElementById("mfaSession").value = "";
+            setStatus("Token filled — you can refresh inventory.", true);
+            return;
+          }
+          if (data.challenge === "SOFTWARE_TOKEN_MFA" && data.session) {
+            document.getElementById("mfaSession").value = data.session;
+            document.getElementById("mfaChallenge").value = data.challenge || "SOFTWARE_TOKEN_MFA";
+            mfaBlock.style.display = "block";
+            mfaBtn.style.display = "inline-block";
+            loginBtn.style.display = "none";
+            setStatus("Enter the 6-digit code from your authenticator app, then click Submit MFA.", true);
+            return;
+          }
+          if (data.challenge === "MFA_SETUP") {
+            setStatus(
+              "Cognito requires MFA enrollment first. In AWS Console: Cognito → your admins user pool → Users → select this user → MFA → Associate an MFA device. Then sign in again.",
+              false
+            );
+            return;
+          }
+          setStatus("Unexpected challenge: " + (data.challenge || JSON.stringify(data)), false);
+        } catch (e) {
+          setStatus(e.message || "Sign-in failed", false);
+        }
+      });
+
+      document.getElementById("staffMfaBtn").addEventListener("click", async () => {
+        const email = document.getElementById("staffEmail").value.trim();
+        const session = document.getElementById("mfaSession").value;
+        const mfaCode = document.getElementById("staffMfa").value.trim();
+        const challengeName = document.getElementById("mfaChallenge").value || "SOFTWARE_TOKEN_MFA";
+        setStatus("Verifying MFA…", true);
+        try {
+          const data = await staffFetch("/cognito-admin/respond-mfa", {
+            email,
+            session,
+            mfaCode,
+            challengeName
+          });
+          if (data.accessToken) {
+            document.getElementById("token").value = data.accessToken;
+            document.getElementById("mfaBlock").style.display = "none";
+            document.getElementById("staffMfaBtn").style.display = "none";
+            document.getElementById("staffLoginBtn").style.display = "inline-block";
+            setStatus("Token filled — you can refresh inventory.", true);
+            return;
+          }
+          if (data.challenge && data.session) {
+            document.getElementById("mfaSession").value = data.session;
+            document.getElementById("mfaChallenge").value = data.challenge;
+            setStatus("Additional step required: " + data.challenge, false);
+            return;
+          }
+          setStatus("Unexpected response after MFA.", false);
+        } catch (e) {
+          setStatus(e.message || "MFA failed", false);
+        }
+      });
+
       function authHeader() {
         let t = document.getElementById("token").value.trim();
         if (!t) return {};

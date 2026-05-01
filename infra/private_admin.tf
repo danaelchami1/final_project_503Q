@@ -1,5 +1,5 @@
 locals {
-  private_admin_enabled = var.enable_private_admin_path && var.admin_vpn_server_certificate_arn != ""
+  private_admin_enabled = var.enable_private_admin_path && var.admin_vpn_server_certificate_arn != "" && var.admin_vpn_client_root_certificate_chain_arn != ""
 }
 
 resource "aws_security_group" "admin_vpn" {
@@ -8,6 +8,23 @@ resource "aws_security_group" "admin_vpn" {
   name        = "shopcloud-${var.environment}-admin-vpn-sg"
   description = "Security group for private admin VPN path"
   vpc_id      = aws_vpc.shopcloud_vpc.id
+
+  # Client VPN clients connect from the internet to the endpoint (UDP/TCP 443).
+  ingress {
+    description = "AWS Client VPN"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "AWS Client VPN TCP"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   egress {
     from_port   = 0
@@ -34,7 +51,8 @@ resource "aws_ec2_client_vpn_endpoint" "admin" {
   authentication_options {
     type = "certificate-authentication"
 
-    root_certificate_chain_arn = var.admin_vpn_server_certificate_arn
+    # CA that signed *client* certificates (mutual TLS). Must not be the server leaf cert ARN.
+    root_certificate_chain_arn = var.admin_vpn_client_root_certificate_chain_arn
   }
 
   connection_log_options {

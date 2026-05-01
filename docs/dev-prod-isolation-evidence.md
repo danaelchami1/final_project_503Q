@@ -80,7 +80,7 @@ Reference CI control:
 ## 7) Private admin path proof (internal-only)
 
 Implemented controls:
-- Terraform gates private admin resources behind `enable_private_admin_path` and a non-empty VPN certificate ARN in `infra/private_admin.tf`.
+- Terraform gates private admin resources behind `enable_private_admin_path` and non-empty ACM ARNs for the VPN **server** cert and **client CA** in `infra/private_admin.tf`.
 - Admin ingress is explicitly internal ALB only in `k8s/admin-private-ingress.yaml`:
   - `kubernetes.io/ingress.class: alb`
   - `alb.ingress.kubernetes.io/scheme: internal`

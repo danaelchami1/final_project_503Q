@@ -53,6 +53,14 @@ resource "aws_cognito_user_pool" "admins" {
     }
   }
 
+  # TOTP MFA for staff (architecture PDF: certificate at VPN + MFA at identity).
+  # Enroll each admin user once: Cognito console → Users → user → MFA → Associate authenticator app.
+  mfa_configuration = "ON"
+
+  software_token_mfa_configuration {
+    enabled = true
+  }
+
   tags = local.common_tags
 }
 

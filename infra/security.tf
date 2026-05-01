@@ -180,6 +180,15 @@ resource "aws_iam_policy" "auth_irsa" {
           aws_ssm_parameter.auth_admin_client_id[0].arn,
           aws_ssm_parameter.auth_admin_group[0].arn
         ]
+      },
+      {
+        Sid    = "AdminsPoolPasswordMfaLogin"
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:InitiateAuth",
+          "cognito-idp:RespondToAuthChallenge"
+        ]
+        Resource = aws_cognito_user_pool.admins.arn
       }
     ]
   })

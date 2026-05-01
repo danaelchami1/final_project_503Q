@@ -175,6 +175,11 @@ output "admin_vpn_endpoint_id" {
   value       = local.private_admin_enabled ? aws_ec2_client_vpn_endpoint.admin[0].id : null
 }
 
+output "admin_client_vpn_endpoint_dns_name" {
+  description = "DNS name for AWS Client VPN (use in AWS VPN Client / OpenVPN after downloading profile and adding client cert)"
+  value       = local.private_admin_enabled ? aws_ec2_client_vpn_endpoint.admin[0].dns_name : null
+}
+
 output "checkout_irsa_role_arn" {
   description = "IRSA role ARN assigned to checkout service account"
   value       = var.enable_secrets_architecture ? aws_iam_role.checkout_irsa[0].arn : null

@@ -11,3 +11,4 @@ Thumbs.db
 .kube/
 terraform.tfvars
 services/invoice-worker/invoices/
+infra/.vpn-certs-generated/

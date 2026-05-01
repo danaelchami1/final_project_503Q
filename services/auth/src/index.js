@@ -1,6 +1,11 @@
 const crypto = require("crypto");
 const express = require("express");
 const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
+const {
+  CognitoIdentityProviderClient,
+  InitiateAuthCommand,
+  RespondToAuthChallengeCommand
+} = require("@aws-sdk/client-cognito-identity-provider");
 const { createRemoteJWKSet, jwtVerify } = require("jose");
 
 const app = express();
@@ -52,6 +57,14 @@ const users = [
 ];
 const activeTokens = new Map();
 let ssmClient = null;
+let cognitoIdpClient = null;
+
+function getCognitoIdpClient() {
+  if (!cognitoIdpClient) {
+    cognitoIdpClient = new CognitoIdentityProviderClient({ region: awsRegion });
+  }
+  return cognitoIdpClient;
+}
 
 function getSsmClient() {
   if (!ssmClient) {
@@ -289,6 +302,135 @@ app.get("/auth/admin-check", requireAuth, requireAdmin, (req, res) => {
     ok: true,
     role: req.session.role
   });
+});
+
+/**
+ * Admins pool: password + TOTP (MFA ON). VPN provides certificate; Cognito provides MFA at sign-in.
+ * Used by internal admin UI via admin-service proxy (same-origin).
+ */
+app.post("/auth/cognito-admin/login", async (req, res) => {
+  try {
+    await loadAuthConfigFromSsm();
+  } catch {
+    /* use cached env */
+  }
+
+  const clientId = cognitoAdminsClientId;
+  if (!clientId) {
+    return res.status(503).json({
+      error: "Admins Cognito app client is not configured"
+    });
+  }
+
+  const { email, password } = req.body || {};
+  if (!email || typeof email !== "string" || !password || typeof password !== "string") {
+    return res.status(400).json({
+      error: "email and password are required"
+    });
+  }
+
+  try {
+    const out = await getCognitoIdpClient().send(
+      new InitiateAuthCommand({
+        ClientId: clientId,
+        AuthFlow: "USER_PASSWORD_AUTH",
+        AuthParameters: {
+          USERNAME: email.trim(),
+          PASSWORD: password
+        }
+      })
+    );
+
+    if (out.AuthenticationResult?.AccessToken) {
+      return res.status(200).json({
+        accessToken: out.AuthenticationResult.AccessToken,
+        idToken: out.AuthenticationResult.IdToken,
+        tokenType: out.AuthenticationResult.TokenType || "Bearer",
+        expiresIn: out.AuthenticationResult.ExpiresIn
+      });
+    }
+
+    if (out.ChallengeName && out.Session) {
+      return res.status(200).json({
+        challenge: out.ChallengeName,
+        session: out.Session,
+        challengeParameters: out.ChallengeParameters || {}
+      });
+    }
+
+    return res.status(401).json({
+      error: "Unexpected Cognito response"
+    });
+  } catch (error) {
+    return res.status(401).json({
+      error: "Login failed",
+      message: error.message || String(error)
+    });
+  }
+});
+
+app.post("/auth/cognito-admin/respond-mfa", async (req, res) => {
+  try {
+    await loadAuthConfigFromSsm();
+  } catch {
+    /* use cached env */
+  }
+
+  const clientId = cognitoAdminsClientId;
+  if (!clientId) {
+    return res.status(503).json({
+      error: "Admins Cognito app client is not configured"
+    });
+  }
+
+  const { email, session, mfaCode, challengeName } = req.body || {};
+  if (!email || !session || !mfaCode) {
+    return res.status(400).json({
+      error: "email, session, and mfaCode are required"
+    });
+  }
+
+  const challenge = challengeName || "SOFTWARE_TOKEN_MFA";
+
+  try {
+    const out = await getCognitoIdpClient().send(
+      new RespondToAuthChallengeCommand({
+        ClientId: clientId,
+        ChallengeName: challenge,
+        Session: session,
+        ChallengeResponses: {
+          USERNAME: String(email).trim(),
+          SOFTWARE_TOKEN_MFA_CODE: String(mfaCode).trim()
+        }
+      })
+    );
+
+    if (out.AuthenticationResult?.AccessToken) {
+      return res.status(200).json({
+        accessToken: out.AuthenticationResult.AccessToken,
+        idToken: out.AuthenticationResult.IdToken,
+        tokenType: out.AuthenticationResult.TokenType || "Bearer",
+        expiresIn: out.AuthenticationResult.ExpiresIn
+      });
+    }
+
+    if (out.ChallengeName && out.Session) {
+      return res.status(200).json({
+        challenge: out.ChallengeName,
+        session: out.Session,
+        challengeParameters: out.ChallengeParameters || {}
+      });
+    }
+
+    return res.status(401).json({
+      error: "Unexpected Cognito response"
+    });
+  } catch (error) {
+    return res.status(401).json({
+      error: "MFA verification failed",
+      message: error.message || String(error)
+    });
+  }
 });
 
 // Local fallback endpoints

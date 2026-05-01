@@ -264,7 +264,13 @@ variable "enable_private_admin_path" {
 }
 
 variable "admin_vpn_server_certificate_arn" {
-  description = "ACM server certificate ARN for Client VPN endpoint"
+  description = "ACM certificate ARN for the Client VPN *server* identity (imported server leaf + chain)"
+  type        = string
+  default     = ""
+}
+
+variable "admin_vpn_client_root_certificate_chain_arn" {
+  description = "ACM certificate ARN for the CA that signed *client* certs (mutual authentication). Import the same CA cert used to issue client.ovpn credentials."
   type        = string
   default     = ""
 }
