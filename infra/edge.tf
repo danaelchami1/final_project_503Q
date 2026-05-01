@@ -1,5 +1,5 @@
 locals {
-  effective_public_alb_dns_name = var.public_alb_dns_name != "" ? var.public_alb_dns_name : (var.enable_public_alb ? aws_lb.public[0].dns_name : "")
+  effective_public_alb_dns_name  = var.public_alb_dns_name != "" ? var.public_alb_dns_name : (var.enable_public_alb ? aws_lb.public[0].dns_name : "")
   public_latency_routing_enabled = local.public_edge_enabled && length(var.public_latency_records) > 0
   public_edge_enabled = (
     var.enable_public_edge &&
@@ -113,8 +113,8 @@ resource "aws_cloudfront_distribution" "public" {
     origin_id   = "shopcloud-public-alb"
 
     custom_origin_config {
-      http_port              = 80
-      https_port             = 443
+      http_port  = 80
+      https_port = 443
       # Edge TLS terminates at CloudFront; ALB origin may run HTTP inside AWS network.
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
