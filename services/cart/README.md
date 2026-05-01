@@ -32,3 +32,14 @@ npm start
 
 Default port: `3002`
 Default Redis URL: `redis://127.0.0.1:6379`
+
+## Redis modes
+
+- **Local/in-cluster Redis (dev):** `REDIS_URL=redis://redis:6379`
+- **Managed ElastiCache with transit encryption:** `REDIS_URL=rediss://<endpoint>:6379`
+
+Optional:
+
+- `REDIS_TLS_REJECT_UNAUTHORIZED` (default: `true`) for `rediss://` mode.
+  - Keep `true` for normal secure operation.
+  - Set to `false` only for temporary debugging with non-standard cert chains.

@@ -19,6 +19,22 @@ spec:
       labels:
         app: cart
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: cart
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: cart
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: cart
           image: 680666325893.dkr.ecr.us-east-1.amazonaws.com/shopcloud-cart:v1
@@ -29,7 +45,17 @@ spec:
             - name: PORT
               value: "3002"
             - name: REDIS_URL
-              value: "redis://redis:6379"
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: REDIS_URL
+                  optional: true
+            - name: REDIS_TLS_REJECT_UNAUTHORIZED
+              valueFrom:
+                secretKeyRef:
+                  name: shopcloud-app-secrets
+                  key: REDIS_TLS_REJECT_UNAUTHORIZED
+                  optional: true
             - name: AUTH_SERVICE_URL
               value: "http://auth:3005"
           resources:

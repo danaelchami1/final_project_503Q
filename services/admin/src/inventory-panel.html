@@ -6,74 +6,107 @@
     <title>ShopCloud Admin Console</title>
     <style>
       :root {
-        --bg: #f5f8ff;
+        --bg: #f3f6fc;
         --surface: #ffffff;
-        --surface-soft: #eff4ff;
-        --text: #14213d;
-        --muted: #51607d;
+        --surface-soft: #eef3ff;
+        --text: #12213f;
+        --muted: #5b6b87;
         --primary: #2563eb;
-        --primary-strong: #1d4ed8;
+        --primary-strong: #1e40af;
         --danger: #dc2626;
-        --border: #dbe5ff;
+        --danger-strong: #b91c1c;
+        --success: #0f9d58;
+        --border: #d8e3fb;
+        --shadow: 0 10px 28px rgba(37, 99, 235, 0.1);
       }
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        font-family: Inter, Segoe UI, Arial, sans-serif;
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
         background: var(--bg);
         color: var(--text);
+        line-height: 1.45;
       }
       .shell {
-        max-width: 1120px;
+        max-width: 1180px;
         margin: 0 auto;
-        padding: 24px 18px 36px;
+        padding: 28px 20px 40px;
       }
       .topbar {
-        background: linear-gradient(120deg, var(--primary), var(--primary-strong));
+        background: radial-gradient(circle at top right, #5a8bff 0%, var(--primary) 42%, var(--primary-strong) 100%);
         color: #fff;
-        border-radius: 14px;
-        padding: 16px 18px;
-        margin-bottom: 20px;
+        border-radius: 16px;
+        padding: 18px 20px;
+        margin-bottom: 18px;
+        box-shadow: var(--shadow);
       }
       .topbar h1 {
         margin: 0 0 6px;
-        font-size: 1.4rem;
+        font-size: 1.5rem;
       }
       .topbar p {
         margin: 0;
-        opacity: 0.95;
+        opacity: 0.96;
       }
       .status {
-        margin-top: 10px;
-        font-size: 0.92rem;
+        margin-top: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
       }
       .status.ok {
-        color: #0f9d58;
+        color: var(--success);
       }
       .status.err {
         color: #b91c1c;
       }
+      .status.info {
+        color: var(--primary-strong);
+      }
       .panel {
         background: var(--surface);
         border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 14px;
-        padding: 16px;
-        margin-bottom: 14px;
-        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+        padding: 14px;
+        box-shadow: var(--shadow);
+      }
+      .stat-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .stat-value {
+        font-size: 1.2rem;
+        font-weight: 700;
       }
       h2 {
-        margin: 0 0 8px;
-        font-size: 1.08rem;
+        margin: 0 0 10px;
+        font-size: 1.1rem;
       }
       .muted {
         color: var(--muted);
-        margin: 0 0 10px;
+        margin: 0 0 12px;
       }
       .grid {
         display: grid;
-        gap: 10px;
+        gap: 12px;
       }
       .grid.two {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -81,37 +114,49 @@
       input {
         width: 100%;
         border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 10px 12px;
+        border-radius: 12px;
+        padding: 11px 12px;
         font-size: 0.95rem;
+        background: #fff;
+        color: var(--text);
+      }
+      input:focus {
+        outline: 2px solid rgba(37, 99, 235, 0.25);
+        border-color: var(--primary);
       }
       .row {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 8px;
+        gap: 8px;
+        margin-top: 10px;
       }
       button {
         border: 0;
-        border-radius: 10px;
+        border-radius: 12px;
         padding: 10px 14px;
         font-weight: 600;
         cursor: pointer;
         background: var(--primary);
         color: #fff;
+        transition: transform 120ms ease, filter 120ms ease, background 120ms ease;
       }
       button:hover {
-        background: var(--primary-strong);
+        filter: brightness(0.97);
+        transform: translateY(-1px);
       }
       button.secondary {
-        background: #64748b;
+        background: #475569;
       }
       button.danger {
         background: var(--danger);
       }
+      button.danger:hover {
+        background: var(--danger-strong);
+      }
       button:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+        transform: none;
       }
       .session-chip {
         display: inline-flex;
@@ -123,24 +168,55 @@
         font-size: 0.84rem;
         background: var(--surface-soft);
       }
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin: 10px 0;
+      }
+      .toolbar .grow {
+        flex: 1 1 240px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--surface-soft);
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
       table {
         width: 100%;
         border-collapse: collapse;
         background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        overflow: hidden;
+        min-width: 760px;
       }
       th,
       td {
         text-align: left;
-        padding: 10px 12px;
-        border-bottom: 1px solid #edf2ff;
+        padding: 11px 12px;
+        border-bottom: 1px solid #ebf1ff;
         vertical-align: top;
+        font-size: 0.93rem;
       }
       th {
         background: var(--surface-soft);
         font-weight: 700;
+      }
+      tbody tr:nth-child(even) {
+        background: #fbfdff;
+      }
+      tbody tr:hover {
+        background: #f4f8ff;
       }
       td .inline {
         display: inline-flex;
@@ -149,9 +225,34 @@
       .stock-input {
         width: 84px;
       }
+      .empty-state {
+        padding: 20px 10px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .kbd {
+        padding: 2px 6px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fff;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
       @media (max-width: 900px) {
+        .stats {
+          grid-template-columns: 1fr;
+        }
         .grid.two {
           grid-template-columns: 1fr;
+        }
+        .shell {
+          padding: 16px 12px 26px;
+        }
+        .panel {
+          padding: 14px;
+        }
+        .topbar {
+          padding: 14px;
         }
       }
     </style>
@@ -162,6 +263,20 @@
         <h1>ShopCloud Admin Console</h1>
         <p>Private operations dashboard for inventory and orders. Access is restricted to internal path + admin auth.</p>
       </div>
+      <section class="stats">
+        <div class="stat-card">
+          <div class="stat-label">Session</div>
+          <div id="statSession" class="stat-value">Signed out</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Products</div>
+          <div id="statProducts" class="stat-value">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Orders</div>
+          <div id="statOrders" class="stat-value">-</div>
+        </div>
+      </section>
 
       <section class="panel">
         <h2>Admin Sign-in</h2>
@@ -188,6 +303,10 @@
           <h2 style="margin: 0">Inventory</h2>
           <button type="button" id="loadBtn">Refresh inventory</button>
         </div>
+        <div class="toolbar">
+          <input id="inventoryFilter" class="grow" type="text" placeholder="Search by id, name, or category..." />
+          <span class="pill">Tip: press <span class="kbd">/</span> to focus search</span>
+        </div>
 
         <div class="grid two" style="margin: 12px 0">
           <input id="newId" type="text" placeholder="Product ID (e.g. p-2001)" />
@@ -198,19 +317,21 @@
         </div>
         <button type="button" id="addBtn">Create product</button>
 
-        <table style="margin-top: 12px">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
+        <div class="table-wrap" style="margin-top: 12px">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
       </section>
 
       <section class="panel">
@@ -218,19 +339,24 @@
           <h2 style="margin: 0">Orders (read-only)</h2>
           <button type="button" id="loadOrdersBtn" class="secondary">Refresh orders</button>
         </div>
-        <table style="margin-top: 12px">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>User</th>
-              <th>Email</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Items</th>
-            </tr>
-          </thead>
-          <tbody id="ordersRows"></tbody>
-        </table>
+        <div class="toolbar">
+          <input id="ordersFilter" class="grow" type="text" placeholder="Search orders by id, user, email, status..." />
+        </div>
+        <div class="table-wrap" style="margin-top: 12px">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>User</th>
+                <th>Email</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Items</th>
+              </tr>
+            </thead>
+            <tbody id="ordersRows"></tbody>
+          </table>
+        </div>
       </section>
     </div>
 
@@ -239,10 +365,49 @@
         token: "",
         email: ""
       };
+      const uiState = {
+        products: [],
+        orders: [],
+        busy: false
+      };
 
-      function setStatus(msg, ok) {
+      function setBusy(isBusy) {
+        uiState.busy = !!isBusy;
+        const ids = [
+          "staffLoginBtn",
+          "staffMfaBtn",
+          "logoutBtn",
+          "loadBtn",
+          "loadOrdersBtn",
+          "addBtn",
+          "inventoryFilter",
+          "ordersFilter"
+        ];
+        ids.forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (el.tagName === "BUTTON") {
+            el.disabled = uiState.busy || (id === "logoutBtn" && !authState.token);
+          } else {
+            el.disabled = uiState.busy;
+          }
+        });
+      }
+
+      function setStatValue(id, value) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = String(value);
+        }
+      }
+
+      function setStatus(msg, ok, isInfo) {
         const el = document.getElementById("status");
         el.textContent = msg;
+        if (isInfo) {
+          el.className = "status info";
+          return;
+        }
         el.className = "status " + (ok ? "ok" : "err");
       }
 
@@ -260,10 +425,12 @@
         if (!authState.token) {
           chip.textContent = "Not signed in";
           logoutBtn.disabled = true;
+          setStatValue("statSession", "Signed out");
           return;
         }
         chip.textContent = "Signed in: " + (authState.email || "admin");
         logoutBtn.disabled = false;
+        setStatValue("statSession", "Signed in");
       }
 
       function authHeader() {
@@ -312,77 +479,22 @@
         return false;
       }
 
-      document.getElementById("staffLoginBtn").addEventListener("click", async () => {
-        const email = document.getElementById("staffEmail").value.trim();
-        const password = document.getElementById("staffPassword").value;
-        setStatus("Signing in...", true);
-        try {
-          const data = await staffFetch("/cognito-admin/login", { email, password });
-          if (data.accessToken) {
-            authState.token = data.accessToken;
-            authState.email = email;
-            document.getElementById("mfaBlock").style.display = "none";
-            document.getElementById("staffMfaBtn").style.display = "none";
-            setSessionUi();
-            setStatus("Signed in successfully.", true);
-            await loadInventory();
-            return;
-          }
-          if (data.challenge === "SOFTWARE_TOKEN_MFA" && data.session) {
-            document.getElementById("mfaSession").value = data.session;
-            document.getElementById("mfaBlock").style.display = "grid";
-            document.getElementById("staffMfaBtn").style.display = "inline-block";
-            setStatus("Enter authenticator code, then submit MFA.", true);
-            return;
-          }
-          setStatus("Unexpected challenge response.", false);
-        } catch (e) {
-          setStatus(e.message || "Sign-in failed", false);
-        }
-      });
-
-      document.getElementById("staffMfaBtn").addEventListener("click", async () => {
-        const email = document.getElementById("staffEmail").value.trim();
-        const session = document.getElementById("mfaSession").value;
-        const mfaCode = document.getElementById("staffMfa").value.trim();
-        setStatus("Verifying MFA...", true);
-        try {
-          const data = await staffFetch("/cognito-admin/respond-mfa", {
-            email,
-            session,
-            mfaCode,
-            challengeName: "SOFTWARE_TOKEN_MFA"
-          });
-          if (!data.accessToken) {
-            setStatus("MFA response did not include token.", false);
-            return;
-          }
-          authState.token = data.accessToken;
-          authState.email = email;
-          document.getElementById("mfaBlock").style.display = "none";
-          document.getElementById("staffMfaBtn").style.display = "none";
-          setSessionUi();
-          setStatus("MFA verified. Signed in.", true);
-          await loadInventory();
-        } catch (e) {
-          setStatus(e.message || "MFA failed", false);
-        }
-      });
-
-      document.getElementById("logoutBtn").addEventListener("click", () => {
-        authState.token = "";
-        authState.email = "";
-        setSessionUi();
-        setStatus("Signed out.", true);
-      });
-
-      async function loadInventory() {
-        if (!requireSignedIn()) return;
-        setStatus("Loading inventory...", true);
-        const data = await api("/admin/products", { method: "GET" });
+      function renderProductsTable(data) {
         const tbody = document.getElementById("rows");
+        const query = (document.getElementById("inventoryFilter").value || "").trim().toLowerCase();
+        const filtered = !query
+          ? data
+          : data.filter((p) => {
+              const haystack = [p.id, p.name, p.category].join(" ").toLowerCase();
+              return haystack.includes(query);
+            });
+
         tbody.innerHTML = "";
-        for (const p of data) {
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No products match your filter.</td></tr>';
+          return;
+        }
+        for (const p of filtered) {
           const tr = document.createElement("tr");
           tr.innerHTML =
             "<td>" +
@@ -410,52 +522,23 @@
         tbody.querySelectorAll("[data-del]").forEach((btn) => {
           btn.addEventListener("click", () => delProduct(btn.getAttribute("data-del")));
         });
-        setStatus("Loaded " + data.length + " products.", true);
       }
 
-      async function saveStock(id) {
-        if (!requireSignedIn()) return;
-        const input = document.querySelector('input[data-stock-id="' + id.replace(/"/g, "") + '"]');
-        const stock = Number(input && input.value);
-        if (!Number.isInteger(stock) || stock < 0) {
-          setStatus("Stock must be a non-negative integer.", false);
-          return;
-        }
-        try {
-          await api("/admin/products/" + encodeURIComponent(id) + "/stock", {
-            method: "PATCH",
-            body: JSON.stringify({ stock })
-          });
-          setStatus("Updated stock for " + id, true);
-          await loadInventory();
-        } catch (e) {
-          setStatus(e.message || "Update failed", false);
-        }
-      }
-
-      async function delProduct(id) {
-        if (!requireSignedIn()) return;
-        if (!confirm("Delete product " + id + "?")) return;
-        try {
-          await api("/admin/products/" + encodeURIComponent(id), { method: "DELETE" });
-          setStatus("Deleted " + id, true);
-          await loadInventory();
-        } catch (e) {
-          setStatus(e.message || "Delete failed", false);
-        }
-      }
-
-      async function loadOrders() {
-        if (!requireSignedIn()) return;
-        setStatus("Loading orders...", true);
-        const data = await api("/admin/orders", { method: "GET" });
+      function renderOrdersTable(data) {
         const tbody = document.getElementById("ordersRows");
+        const query = (document.getElementById("ordersFilter").value || "").trim().toLowerCase();
+        const filtered = !query
+          ? data
+          : data.filter((o) => {
+              const haystack = [o.id, o.userId, o.email, o.status].join(" ").toLowerCase();
+              return haystack.includes(query);
+            });
         tbody.innerHTML = "";
-        if (!Array.isArray(data) || data.length === 0) {
-          setStatus("No orders found.", true);
+        if (!Array.isArray(filtered) || filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No orders found for this filter.</td></tr>';
           return;
         }
-        for (const o of data) {
+        for (const o of filtered) {
           const items = Array.isArray(o.items)
             ? o.items.map((i) => (i.productId || "?") + "x" + (i.quantity ?? "?")).join(", ")
             : "—";
@@ -476,7 +559,156 @@
             "</td>";
           tbody.appendChild(tr);
         }
-        setStatus("Loaded " + data.length + " orders.", true);
+      }
+
+      document.getElementById("staffLoginBtn").addEventListener("click", async () => {
+        const email = document.getElementById("staffEmail").value.trim();
+        const password = document.getElementById("staffPassword").value;
+        setBusy(true);
+        setStatus("Signing in...", true, true);
+        try {
+          const data = await staffFetch("/cognito-admin/login", { email, password });
+          if (data.accessToken) {
+            authState.token = data.accessToken;
+            authState.email = email;
+            document.getElementById("mfaBlock").style.display = "none";
+            document.getElementById("staffMfaBtn").style.display = "none";
+            setSessionUi();
+            setStatus("Signed in successfully.", true);
+            await loadInventory();
+            return;
+          }
+          if (data.challenge === "SOFTWARE_TOKEN_MFA" && data.session) {
+            document.getElementById("mfaSession").value = data.session;
+            document.getElementById("mfaBlock").style.display = "grid";
+            document.getElementById("staffMfaBtn").style.display = "inline-block";
+            setStatus("Enter authenticator code, then submit MFA.", true);
+            return;
+          }
+          setStatus("Unexpected challenge response.", false);
+        } catch (e) {
+          setStatus(e.message || "Sign-in failed", false);
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      document.getElementById("staffMfaBtn").addEventListener("click", async () => {
+        const email = document.getElementById("staffEmail").value.trim();
+        const session = document.getElementById("mfaSession").value;
+        const mfaCode = document.getElementById("staffMfa").value.trim();
+        setBusy(true);
+        setStatus("Verifying MFA...", true, true);
+        try {
+          const data = await staffFetch("/cognito-admin/respond-mfa", {
+            email,
+            session,
+            mfaCode,
+            challengeName: "SOFTWARE_TOKEN_MFA"
+          });
+          if (!data.accessToken) {
+            setStatus("MFA response did not include token.", false);
+            return;
+          }
+          authState.token = data.accessToken;
+          authState.email = email;
+          document.getElementById("mfaBlock").style.display = "none";
+          document.getElementById("staffMfaBtn").style.display = "none";
+          setSessionUi();
+          setStatus("MFA verified. Signed in.", true);
+          await loadInventory();
+        } catch (e) {
+          setStatus(e.message || "MFA failed", false);
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        authState.token = "";
+        authState.email = "";
+        setSessionUi();
+        setStatValue("statProducts", "-");
+        setStatValue("statOrders", "-");
+        uiState.products = [];
+        uiState.orders = [];
+        document.getElementById("rows").innerHTML =
+          '<tr><td colspan="6" class="empty-state">Sign in and refresh inventory to view products.</td></tr>';
+        document.getElementById("ordersRows").innerHTML =
+          '<tr><td colspan="6" class="empty-state">Sign in and refresh orders to view data.</td></tr>';
+        setStatus("Signed out.", true);
+      });
+
+      async function loadInventory() {
+        if (!requireSignedIn()) return;
+        setBusy(true);
+        setStatus("Loading inventory...", true, true);
+        try {
+          const data = await api("/admin/products", { method: "GET" });
+          uiState.products = Array.isArray(data) ? data : [];
+          renderProductsTable(uiState.products);
+          setStatValue("statProducts", data.length);
+          setStatus("Loaded " + data.length + " products.", true);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function saveStock(id) {
+        if (!requireSignedIn()) return;
+        const input = document.querySelector('input[data-stock-id="' + id.replace(/"/g, "") + '"]');
+        const stock = Number(input && input.value);
+        if (!Number.isInteger(stock) || stock < 0) {
+          setStatus("Stock must be a non-negative integer.", false);
+          return;
+        }
+        try {
+          setBusy(true);
+          await api("/admin/products/" + encodeURIComponent(id) + "/stock", {
+            method: "PATCH",
+            body: JSON.stringify({ stock })
+          });
+          setStatus("Updated stock for " + id, true);
+          await loadInventory();
+        } catch (e) {
+          setStatus(e.message || "Update failed", false);
+          setBusy(false);
+        }
+      }
+
+      async function delProduct(id) {
+        if (!requireSignedIn()) return;
+        if (!confirm("Delete product " + id + "?")) return;
+        try {
+          setBusy(true);
+          await api("/admin/products/" + encodeURIComponent(id), { method: "DELETE" });
+          setStatus("Deleted " + id, true);
+          await loadInventory();
+        } catch (e) {
+          setStatus(e.message || "Delete failed", false);
+          setBusy(false);
+        }
+      }
+
+      async function loadOrders() {
+        if (!requireSignedIn()) return;
+        setBusy(true);
+        setStatus("Loading orders...", true, true);
+        try {
+          const data = await api("/admin/orders", { method: "GET" });
+          uiState.orders = Array.isArray(data) ? data : [];
+          if (!Array.isArray(data) || data.length === 0) {
+            renderOrdersTable([]);
+            setStatValue("statOrders", 0);
+            setStatus("No orders found.", true);
+            return;
+          }
+          renderOrdersTable(uiState.orders);
+          setStatValue("statOrders", data.length);
+          setStatus("Loaded " + data.length + " orders.", true);
+        } finally {
+          setBusy(false);
+        }
       }
 
       document.getElementById("loadBtn").addEventListener("click", () => {
@@ -485,6 +717,27 @@
 
       document.getElementById("loadOrdersBtn").addEventListener("click", () => {
         loadOrders().catch((e) => setStatus(e.message || "Orders load failed", false));
+      });
+
+      document.getElementById("inventoryFilter").addEventListener("input", () => {
+        renderProductsTable(uiState.products);
+      });
+
+      document.getElementById("ordersFilter").addEventListener("input", () => {
+        renderOrdersTable(uiState.orders);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          const target = event.target;
+          const isTyping =
+            target &&
+            (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable === true);
+          if (!isTyping) {
+            event.preventDefault();
+            document.getElementById("inventoryFilter").focus();
+          }
+        }
       });
 
       document.getElementById("addBtn").addEventListener("click", async () => {
@@ -499,6 +752,7 @@
           return;
         }
         try {
+          setBusy(true);
           await api("/admin/products", {
             method: "POST",
             body: JSON.stringify({ id, name, category, price, stock })
@@ -507,8 +761,15 @@
           await loadInventory();
         } catch (e) {
           setStatus(e.message || "Create failed", false);
+          setBusy(false);
         }
       });
+
+      document.getElementById("rows").innerHTML =
+        '<tr><td colspan="6" class="empty-state">Sign in and refresh inventory to view products.</td></tr>';
+      document.getElementById("ordersRows").innerHTML =
+        '<tr><td colspan="6" class="empty-state">Sign in and refresh orders to view data.</td></tr>';
+      setSessionUi();
     </script>
   </body>
 </html>

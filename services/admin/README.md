@@ -6,6 +6,7 @@ Internal ShopCloud admin microservice: **inventory API** plus a small **HTML pan
 
 - The admin `Service` must stay **`ClusterIP`** (default in `k8s/admin-service.yaml`). **Do not** publish it with a `LoadBalancer` or a **public** Ingress.
 - Use **`k8s/admin-private-ingress.yaml`**: AWS Load Balancer Controller with **`alb.ingress.kubernetes.io/scheme: internal`** so the ALB has **only private IPs** inside your VPC.
+- Recommended ownership model: keep Kubernetes Ingress as the single admin ALB path. If using this model, keep Terraform `enable_internal_admin_alb = false` to avoid duplicate internal ALBs and routing drift.
 - Staff reach the UI over **VPN / Direct Connect / bastion / same VPC** (e.g. internal ALB DNS, or `kubectl port-forward svc/admin 3006:3006` from a trusted host).
 - The **storefront nginx** must **not** proxy `/` to admin (today it does not). Do not add public routes to this service.
 
@@ -77,6 +78,8 @@ The VPN endpoint security group allows **UDP/TCP 443** from the internet to the 
 - `PORT` (default: `3006`)
 - `AUTH_SERVICE_URL` (default: `http://127.0.0.1:3005`)
 - `CHECKOUT_SERVICE_URL` (default: `http://127.0.0.1:3003`) — used by `GET /admin/orders`
+- `ADMIN_AUTH_RATE_LIMIT_WINDOW_MS` (default: `300000`) — rate-limit window for `/cognito-admin/login` and `/cognito-admin/respond-mfa`
+- `ADMIN_AUTH_RATE_LIMIT_MAX` (default: `8`) — max auth attempts per source IP in each rate-limit window
 
 ## Run locally
 
